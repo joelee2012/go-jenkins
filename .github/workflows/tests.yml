@@ -18,11 +18,9 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
-    - name: start Jenkins
+    - name: Start Jenkins
       run: bash ./start_jenkins.sh start
     - name: Test
-      run: |
-        # make lint
-        # make build
-        make test
+      run: make test
+    - uses: codecov/codecov-action@v1
 

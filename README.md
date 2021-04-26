@@ -1,8 +1,10 @@
 ![Tests](https://github.com/joelee2012/go-jenkins/workflows/Tests/badge.svg?branch=main)
 ![CodeQL](https://github.com/joelee2012/go-jenkins/workflows/CodeQL/badge.svg?branch=main)
+[![codecov](https://codecov.io/gh/joelee2012/go-jenkins/branch/main/graph/badge.svg?token=SEWFVZ7UT3)](https://codecov.io/gh/joelee2012/go-jenkins)
+![GitHub](https://img.shields.io/github/license/joelee2012/go-jenkins)
 
 # go-jenkins
-Jenkins REST API client for Golang, ported from [api4jenkins](https://github.com/joelee2012/api4jenkins>)
+[Jenkins](https://www.jenkins.io/) REST API client for [Golang](https://golang.org/), ported from [api4jenkins](https://github.com/joelee2012/api4jenkins>)
 
 
 # Usage
