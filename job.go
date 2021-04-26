@@ -2,85 +2,115 @@ package jenkins
 
 import (
 	"fmt"
-	"log"
+	"path"
+	"strings"
 
 	"github.com/imroc/req"
 )
 
-type Deleter interface {
-	Delete() error
-}
-
-type Configurator interface {
-	GetConfigure() (string, error)
-}
-
-type Job interface {
-	Rename(name string) error
-	Move(path string)
-	Deleter
-	Configurator
-}
-
-type BaseJob struct {
+type Job struct {
 	Item
 }
 
-func NewJob(url, class string, jenkins *Jenkins) Job {
-	job := BaseJob{
-		Item: Item{
-			Url:     url,
-			Class:   class,
-			jenkins: jenkins},
-	}
-	switch class {
-	case "WorkflowJob":
-		return &WorkflowJob{Project: Project{BaseJob: job}}
-	case "Folder":
-		return &Folder{BaseJob: job}
-	default:
-		return &job
-	}
+func NewJob(url, class string, jenkins *Jenkins) *Job {
+	return &Job{Item: *NewItem(url, class, jenkins)}
 }
 
-func (j *BaseJob) Rename(name string) error {
-	log.Println("rename")
+func (j *Job) Rename(name string) error {
 	resp, err := j.Request("POST", "confirmRename", req.Param{"newName": name})
 	if err != nil {
 		return err
 	}
 	url, _ := resp.Response().Location()
-	j.Url = url.String()
+	j.URL = url.String()
 	return nil
 }
 
-func (j *BaseJob) Move(path string) {
-	log.Println("move")
-}
-
-func (j *BaseJob) Delete() error {
-	_, err := j.Request("POST", "doDelete")
-	return err
-}
-
-func (j *BaseJob) GetParent() {
-	log.Println("get parent")
-}
-
-func (j *BaseJob) GetConfigure() (string, error) {
-	resp, err := j.Request("GET", "config.xml")
+func (j *Job) Move(path string) error {
+	parms := fmt.Sprintf(`{"destination": "/%s", "json": {"destination": "/%s"}}`, path, path)
+	resp, err := j.Request("POST", "move/move", req.BodyJSON(parms))
 	if err != nil {
-		return "", err
+		return err
 	}
-	return resp.String(), nil
+	url, _ := resp.Response().Location()
+	j.URL = url.String()
+	return nil
 }
 
-type Project struct {
-	BaseJob
+func (j *Job) Delete() error {
+	return doDelete(j)
 }
 
-func (p *Project) Build(param req.Param) (*QueueItem, error) {
-	resp, err := p.Request("POST", "build", param)
+func (j *Job) GetParent() (*Job, error) {
+	fullName, _ := j.jenkins.URLToName(j.URL)
+	dir, _ := path.Split(strings.Trim(fullName, "/"))
+	if dir == "" {
+		return nil, nil
+	}
+	return j.jenkins.GetJob(dir)
+}
+
+func (j *Job) GetConfigure() (string, error) {
+	return doGetConfigure(j)
+}
+
+func (j *Job) SetConfigure(xml string) error {
+	return doSetConfigure(j, xml)
+}
+
+func (j *Job) IsBuildable() (bool, error) {
+	var apiJson struct {
+		Class     string `json:"_class"`
+		Buildable bool   `json:"buildable"`
+	}
+	err := j.BindAPIJson(req.Param{"tree": "buildable"}, &apiJson)
+	return apiJson.Buildable, err
+}
+
+func (j *Job) GetName() string {
+	_, name := path.Split(strings.Trim(j.URL, "/"))
+	return name
+}
+
+func (j *Job) GetFullName() string {
+	fullname, _ := j.jenkins.URLToName(j.URL)
+	return fullname
+}
+
+func (j *Job) GetFullDisplayName() string {
+	fullname, _ := j.jenkins.URLToName(j.URL)
+	return strings.ReplaceAll(fullname, "/", " » ")
+}
+
+func (j *Job) GetDescription() (string, error) {
+	return doGetDescription(j)
+}
+
+func (j *Job) SetDescription(description string) error {
+	return doSetDescription(j, description)
+}
+
+func (j *Job) Build(param req.Param) (*QueueItem, error) {
+	buildable, err := j.IsBuildable()
+	if err != nil {
+		return nil, err
+	}
+	if !buildable {
+		return nil, fmt.Errorf("%v is not buildable", j)
+	}
+	entry := func() string {
+		reserved := []string{"token", "delay"}
+		for k := range param {
+			for _, e := range reserved {
+				if k != e {
+					return "buildWithParameters"
+				}
+			}
+		}
+		return "build"
+	}()
+
+	resp, err := j.Request("POST", entry, param)
 	if err != nil {
 		return nil, err
 	}
@@ -88,32 +118,73 @@ func (p *Project) Build(param req.Param) (*QueueItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewQueueItem(url.String(), p.jenkins), nil
+	return NewQueueItem(url.String(), j.jenkins), nil
 }
 
-type WorkflowJob struct {
-	Project
+type JobShortJson struct {
+	Class  string           `json:"_class"`
+	Builds []BuildShortJson `json:"builds"`
+	Name   string           `json:"name"`
+	URL    string           `json:"url"`
+	Jobs   []JobShortJson   `json:"jobs"`
 }
 
-type Folder struct {
-	BaseJob
-}
-
-func (f *Folder) GetJob(name string) (Job, error) {
-	apiJson, err := f.APIJson(req.Param{"tree": "jobs[url,name]"})
+func (j *Job) GetBuild(number int) (*Build, error) {
+	var jobJson JobShortJson
+	err := j.BindAPIJson(req.Param{"tree": "builds[number,url]"}, &jobJson)
 	if err != nil {
 		return nil, err
 	}
-	result := apiJson.Get(fmt.Sprintf(`jobs.#(name=="%s")`, name))
-	if !result.Exists() {
-		return nil, fmt.Errorf("no such Job[%s]", name)
+
+	for _, build := range jobJson.Builds {
+		if number == build.Number {
+			return NewBuild(build.URL, parseClass(build.Class), j.jenkins), nil
+		}
 	}
-	url := result.Get("url").String()
-	class := GetClassName(result.Get("_class").String())
-	return NewJob(url, class, f.jenkins), nil
+	return nil, nil
 }
 
-func (f *Folder) CreateJob(name, xml string) error {
-	_, err := f.Request("POST", "createItem", req.Param{"name": name}, req.BodyXML(xml))
+func (j *Job) Get(name string) (*Job, error) {
+	var folderJson JobShortJson
+	if err := j.BindAPIJson(req.Param{"tree": "jobs[url,name]"}, &folderJson); err != nil {
+		return nil, err
+	}
+	for _, job := range folderJson.Jobs {
+		if job.Name == name {
+			return NewJob(job.URL, job.Class, j.jenkins), nil
+		}
+	}
+	return nil, fmt.Errorf("no such job %s", name)
+}
+
+func (j *Job) Create(name, xml string) error {
+	_, err := j.Request("POST", "createItem", req.Param{"name": name}, req.BodyXML(xml))
 	return err
+}
+
+func (j *Job) List(depth int) ([]*Job, error) {
+	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
+		return nil, fmt.Errorf("only Folder or WorkflowMultiBranchProject can be listed")
+	}
+	query := "jobs[url]"
+	qf := "jobs[url,%s]"
+	for i := 0; i < depth; i++ {
+		query = fmt.Sprintf(qf, query)
+	}
+	var folderJson JobShortJson
+	if err := j.BindAPIJson(req.Param{"tree": query}, &folderJson); err != nil {
+		return nil, err
+	}
+	var jobs []*Job
+	var _resolve func(item *JobShortJson)
+	_resolve = func(item *JobShortJson) {
+		for _, job := range item.Jobs {
+			if len(job.Jobs) > 0 {
+				_resolve(&job)
+			}
+			jobs = append(jobs, NewJob(job.URL, job.Class, j.jenkins))
+		}
+	}
+	_resolve(&folderJson)
+	return jobs, nil
 }

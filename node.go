@@ -8,19 +8,21 @@ type ComputerSet struct {
 	Item
 }
 
-func (cs *ComputerSet) GetBuilds() ([]Build, error) {
-	result, err := cs.APIJson(req.Param{"tree": "computer[oneOffExecutors[currentExecutable[url]]]"})
-	var builds []Build
-	if err != nil {
+func NewComputerSet(url string, jenkins *Jenkins) *ComputerSet {
+	return &ComputerSet{Item: *NewItem(url, "ComputerSet", jenkins)}
+}
+
+func (cs *ComputerSet) GetBuilds() ([]*Build, error) {
+	var csJson ComputerSetJson
+	var builds []*Build
+	if err := cs.BindAPIJson(req.Param{"tree": "computer[oneOffExecutors[currentExecutable[url]]]"}, &csJson); err != nil {
 		return builds, err
 	}
-	executors := result.Get("computer.#.oneOffExecutors.#.currentExecutable")
-	for _, executor := range executors.Array() {
-		for _, build := range executor.Array() {
-			url := build.Get("url").String()
-			class := GetClassName(build.Get("_class").String())
-			builds = append(builds, NewBuild(url, class, cs.jenkins))
+	for _, c := range csJson.Computers {
+		for _, e := range c.OneOffExecutors {
+			builds = append(builds, NewBuild(e.CurrentExecutable.URL, e.CurrentExecutable.Class, cs.jenkins))
 		}
+
 	}
 	return builds, nil
 }

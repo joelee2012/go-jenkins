@@ -1,68 +1,66 @@
 package jenkins
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/imroc/req"
-	"github.com/tidwall/gjson"
 )
 
 type Item struct {
-	Url, Class string
-	jenkins    *Jenkins
+	URL     string
+	Class   string
+	jenkins *Jenkins
+}
+
+func NewItem(url, class string, jenkins *Jenkins) *Item {
+	url = appendSlash(url)
+	return &Item{URL: url, Class: parseClass(class), jenkins: jenkins}
+}
+func (i *Item) BindAPIJson(param req.Param, v interface{}) error {
+	return doBindAPIJson(i, param, v)
 }
 
 func (i *Item) Request(method, entry string, vs ...interface{}) (*req.Resp, error) {
-	vs = append([]interface{}{i.jenkins.Header}, vs...)
-	resp, err := i.jenkins.Req.Do(method, i.Url+entry, vs...)
-	if err != nil {
-		return nil, err
-	}
-	if resp.Response().StatusCode >= 400 {
-		return nil, fmt.Errorf(resp.Dump())
-	}
-	return resp, nil
-}
-
-func (i *Item) APIJson(param req.Param) (gjson.Result, error) {
-	resp, err := i.Request("GET", "api/json", param)
-	if err != nil {
-		return gjson.Result{}, err
-	}
-	return gjson.Parse(resp.String()), nil
+	return doRequest(i.jenkins, method, i.URL+entry, vs...)
 }
 
 func (i *Item) String() string {
-	return fmt.Sprintf("<%s: %s>", i.Class, i.Url)
+	return fmt.Sprintf("<%s: %s>", i.Class, i.URL)
 }
 
 func (i *Item) GetClass() string {
 	return i.Class
 }
 
-func RegSplit(text string, delimeter string) []string {
-	reg := regexp.MustCompile(delimeter)
-	return reg.Split(text, -1)
+var delimeter = regexp.MustCompile(`\w+$`)
+
+func parseClass(text string) string {
+	return delimeter.FindString(text)
 }
 
-func GetClassName(text string) string {
-	ss := RegSplit(text, "[.$]")
-	return ss[len(ss)-1]
-}
-
-func AppendSlash(url string) string {
+func appendSlash(url string) string {
 	if strings.HasSuffix(url, "/") {
 		return url
 	}
 	return url + "/"
 }
 
-func getId(url string) int {
+func parseId(url string) int {
 	_, base := path.Split(strings.Trim(url, "/"))
 	id, _ := strconv.Atoi(base)
 	return id
+}
+
+func prettyPrintJson(v interface{}) {
+	json, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(json))
 }
