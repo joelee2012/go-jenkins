@@ -10,8 +10,8 @@ build: ## build package
 test: ## run test
 	cat $(REPO_ROOT)/env.sh && \
 	. $(REPO_ROOT)/env.sh && \
-	env && \
-	go test -coverprofile=coverage.out -v &&\
+	env | sort && \
+	go test -race -coverprofile=coverage.out -covermode=atomic -v && \
 	go tool cover -html=coverage.out -o cover.html
 
 fmt: ## format code
