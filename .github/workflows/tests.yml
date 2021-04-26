@@ -18,13 +18,10 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
-    - name: start Jenkins
+    - name: Start Jenkins
       run: bash ./start_jenkins.sh start
     - name: Test
-      run: |
-        # make lint
-        # make build
-        make test
-    - name: upload coverage to Codecov
-      run: bash <(curl -s https://codecov.io/bash)
+      run: make test
+    - uses: codecov/codecov-action@v1
+      if: matrix.go-version == '1.16.x'
 
