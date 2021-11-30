@@ -2,41 +2,25 @@ package jenkins
 
 import (
 	"github.com/imroc/req"
-	"github.com/tidwall/gjson"
 )
 
-type Build interface {
-	GetConsoleText() (string, error)
-	IsBuilding() bool
-	APIJson(param req.Param) (gjson.Result, error)
-}
-
-type BaseBuild struct {
+type Build struct {
 	Item
+	ID int
 }
 
-func NewBuild(url, class string, jenkins *Jenkins) Build {
-	build := BaseBuild{
-		Item: Item{
-			Url:     url,
-			Class:   class,
-			jenkins: jenkins,
-		},
-	}
-
-	switch class {
-	case "WorkflowRun":
-		return &WorkflowRun{BaseBuild: build}
-	case "FreeStyleBuild":
-		return &FreeStyleBuild{BaseBuild: build}
-	case "MatrixBuild":
-		return &MatrixBuild{BaseBuild: build}
-	default:
-		return &build
-	}
+type BuildShortJson struct {
+	Class    string `json:"_class"`
+	Number   int    `json:"number"`
+	URL      string `json:"url"`
+	Building bool   `json:"building"`
 }
 
-func (b *BaseBuild) GetConsoleText() (string, error) {
+func NewBuild(url, class string, jenkins *Jenkins) *Build {
+	return &Build{Item: *NewItem(url, class, jenkins), ID: parseId(url)}
+}
+
+func (b *Build) GetConsoleText() (string, error) {
 	resp, err := b.Request("GET", "consoleText", req.Param{})
 	if err != nil {
 		return "", err
@@ -44,25 +28,9 @@ func (b *BaseBuild) GetConsoleText() (string, error) {
 	return resp.String(), nil
 }
 
-func (b *BaseBuild) IsBuilding() bool {
-	result, err := b.APIJson(req.Param{"tree": "building"})
-	if err != nil {
-		panic(err)
-	}
-	return result.Get("building").Bool()
+func (b *Build) IsBuilding() (bool, error) {
+	var status BuildShortJson
+	err := b.BindAPIJson(req.Param{"tree": "building"}, &status)
+	return status.Building, err
 }
 
-func (b *BaseBuild) GetNumber() int {
-	return getId(b.Url)
-}
-
-type WorkflowRun struct {
-	BaseBuild
-}
-
-type FreeStyleBuild struct {
-	BaseBuild
-}
-type MatrixBuild struct {
-	BaseBuild
-}

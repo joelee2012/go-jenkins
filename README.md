@@ -44,44 +44,43 @@ func main() {
 	  </definition>
 	  <disabled>false</disabled>
 	</flow-definition>`
-    // create jenkins job
-    if err := j.CreateJob("workflowjob1", xml); err != nil {
+  // create jenkins job
+	if err := j.CreateJob("workflowjob1", xml); err != nil {
 		log.Fatalln(err)
 	}
-    // get job
-    job, err := j.GetJob("workflowjob1")
+	qitem, err := J.BuildJob("workflowjob1", req.Param{})
+	if err != nil {
+		t.Errorf("expect build job successful, but got error:\n %v", err)
+	}
+	var build *Build
+	for {
+		time.Sleep(1 * time.Second)
+		build, err = qitem.GetBuild()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if build != nil {
+			break
+		}
+	}
+	// waiting build to finish
+
+	for {
+		building, err := build.IsBuilding()
+		if err != nil {
+			t.Error(err)
+		}
+		if !building {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	// get console output
+	text, err := build.GetConsoleText()
 	if err != nil {
 		log.Fatalln(err)
 	}
-    workflow := job.(*jenkins.WorkflowJob)
-    // build job
-    queue, err := workflow.Build(req.Param{})
-    if err != nil {
-        log.Fatalln(err)
-    }
 
-    // get build object from queue item
-    var build interface{}
-    for {
-        time.Sleep(1 * time.Second)
-        build, err = queue.GetBuild()
-        if err != nil {
-            log.Fatalln(err)
-        }
-        if build != nil {
-            break
-        }
-    }
-    // waiting build to finish
-    run := build.(*jenkins.WorkflowRun)
-    for run.IsBuilding() {
-        time.Sleep(1 * time.Second)
-    }
-    // get console output
-    text, err := run.GetConsoleText()
-    if err != nil {
-        log.Fatalln(err)
-    }
-    log.Println(string(text))
+	log.Println(string(text))
 }
 ```
