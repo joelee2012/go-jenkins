@@ -1,14 +1,11 @@
 package jenkins
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/imroc/req"
 )
 
 var J *Jenkins
@@ -185,7 +182,6 @@ func TestBuildJob(t *testing.T) {
 		}
 	}
 	// waiting build to finish
-	fmt.Println(build)
 	for {
 		building, err := build.IsBuilding()
 		if err != nil {

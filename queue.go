@@ -1,9 +1,5 @@
 package jenkins
 
-import (
-	"github.com/imroc/req"
-)
-
 type QueueItem struct {
 	Item
 	ID    int
@@ -56,4 +52,3 @@ func (q *QueueItem) getWaitingBuild() (*Build, error) {
 	}
 	return nil, nil
 }
-

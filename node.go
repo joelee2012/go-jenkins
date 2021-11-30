@@ -1,9 +1,5 @@
 package jenkins
 
-import (
-	"github.com/imroc/req"
-)
-
 type ComputerSet struct {
 	Item
 }

@@ -1,9 +1,5 @@
 package jenkins
 
-import (
-	"github.com/imroc/req"
-)
-
 type Build struct {
 	Item
 	ID int
@@ -33,4 +29,3 @@ func (b *Build) IsBuilding() (bool, error) {
 	err := b.BindAPIJson(ReqParams{"tree": "building"}, &status)
 	return status.Building, err
 }
-
