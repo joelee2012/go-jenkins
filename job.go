@@ -17,7 +17,7 @@ func NewJob(url, class string, jenkins *Jenkins) *Job {
 }
 
 func (j *Job) Rename(name string) error {
-	resp, err := j.Request("POST", "confirmRename", req.Param{"newName": name})
+	resp, err := j.Request("POST", "confirmRename", ReqParams{"newName": name})
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (j *Job) IsBuildable() (bool, error) {
 		Class     string `json:"_class"`
 		Buildable bool   `json:"buildable"`
 	}
-	err := j.BindAPIJson(req.Param{"tree": "buildable"}, &apiJson)
+	err := j.BindAPIJson(ReqParams{"tree": "buildable"}, &apiJson)
 	return apiJson.Buildable, err
 }
 
@@ -90,7 +90,7 @@ func (j *Job) SetDescription(description string) error {
 	return doSetDescription(j, description)
 }
 
-func (j *Job) Build(param req.Param) (*QueueItem, error) {
+func (j *Job) Build(param ReqParams) (*QueueItem, error) {
 	buildable, err := j.IsBuildable()
 	if err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ type JobShortJson struct {
 
 func (j *Job) GetBuild(number int) (*Build, error) {
 	var jobJson JobShortJson
-	err := j.BindAPIJson(req.Param{"tree": "builds[number,url]"}, &jobJson)
+	err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (j *Job) GetBuild(number int) (*Build, error) {
 
 func (j *Job) Get(name string) (*Job, error) {
 	var folderJson JobShortJson
-	if err := j.BindAPIJson(req.Param{"tree": "jobs[url,name]"}, &folderJson); err != nil {
+	if err := j.BindAPIJson(ReqParams{"tree": "jobs[url,name]"}, &folderJson); err != nil {
 		return nil, err
 	}
 	for _, job := range folderJson.Jobs {
@@ -158,7 +158,7 @@ func (j *Job) Get(name string) (*Job, error) {
 }
 
 func (j *Job) Create(name, xml string) error {
-	_, err := j.Request("POST", "createItem", req.Param{"name": name}, req.BodyXML(xml))
+	_, err := j.Request("POST", "createItem", ReqParams{"name": name}, req.BodyXML(xml))
 	return err
 }
 
@@ -172,7 +172,7 @@ func (j *Job) List(depth int) ([]*Job, error) {
 		query = fmt.Sprintf(qf, query)
 	}
 	var folderJson JobShortJson
-	if err := j.BindAPIJson(req.Param{"tree": query}, &folderJson); err != nil {
+	if err := j.BindAPIJson(ReqParams{"tree": query}, &folderJson); err != nil {
 		return nil, err
 	}
 	var jobs []*Job

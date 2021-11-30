@@ -8,7 +8,7 @@ type Credentials struct {
 
 func (cs *Credentials) Get(name string) (*Credential, error) {
 	var credsJson CredentialsJson
-	if err := cs.BindAPIJson(req.Param{"depth": "1"}, &credsJson); err != nil {
+	if err := cs.BindAPIJson(ReqParams{"depth": "1"}, &credsJson); err != nil {
 		return nil, err
 	}
 	for _, cred := range credsJson.Credentials {
@@ -26,7 +26,7 @@ func (cs *Credentials) Create(xml string) error {
 
 func (cs *Credentials) List() ([]*Credential, error) {
 	var credsJson CredentialsJson
-	if err := cs.BindAPIJson(req.Param{"depth": "1"}, &credsJson); err != nil {
+	if err := cs.BindAPIJson(ReqParams{"depth": "1"}, &credsJson); err != nil {
 		return nil, err
 	}
 	var creds []*Credential

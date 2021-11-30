@@ -123,7 +123,7 @@ func (j *Jenkins) GetVersion() (string, error) {
 	return resp.Response().Header.Get("X-Jenkins"), nil
 }
 
-func (j *Jenkins) BuildJob(fullName string, params req.Param) (*QueueItem, error) {
+func (j *Jenkins) BuildJob(fullName string, params ReqParams) (*QueueItem, error) {
 	job, err := j.GetJob(fullName)
 	if err != nil {
 		return nil, err

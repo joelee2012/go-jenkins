@@ -169,7 +169,7 @@ func TestBuildJob(t *testing.T) {
 		t.Errorf("expect create job successful, but got error:\n %v", err)
 	}
 	defer J.DeleteJob("go-test1")
-	qitem, err := J.BuildJob("go-test1", req.Param{})
+	qitem, err := J.BuildJob("go-test1", ReqParams{})
 	if err != nil {
 		t.Errorf("expect build job successful, but got error:\n %v", err)
 	}
