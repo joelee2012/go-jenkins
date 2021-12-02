@@ -18,11 +18,13 @@ type Item struct {
 	jenkins *Jenkins
 }
 
+type ReqParams = req.Param
+
 func NewItem(url, class string, jenkins *Jenkins) *Item {
 	url = appendSlash(url)
 	return &Item{URL: url, Class: parseClass(class), jenkins: jenkins}
 }
-func (i *Item) BindAPIJson(param req.Param, v interface{}) error {
+func (i *Item) BindAPIJson(param ReqParams, v interface{}) error {
 	return doBindAPIJson(i, param, v)
 }
 

@@ -1,14 +1,11 @@
 package jenkins
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/imroc/req"
 )
 
 var J *Jenkins
@@ -169,7 +166,7 @@ func TestBuildJob(t *testing.T) {
 		t.Errorf("expect create job successful, but got error:\n %v", err)
 	}
 	defer J.DeleteJob("go-test1")
-	qitem, err := J.BuildJob("go-test1", req.Param{})
+	qitem, err := J.BuildJob("go-test1", ReqParams{})
 	if err != nil {
 		t.Errorf("expect build job successful, but got error:\n %v", err)
 	}
@@ -185,7 +182,6 @@ func TestBuildJob(t *testing.T) {
 		}
 	}
 	// waiting build to finish
-	fmt.Println(build)
 	for {
 		building, err := build.IsBuilding()
 		if err != nil {

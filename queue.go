@@ -1,9 +1,5 @@
 package jenkins
 
-import (
-	"github.com/imroc/req"
-)
-
 type QueueItem struct {
 	Item
 	ID    int
@@ -23,7 +19,7 @@ func (q *QueueItem) GetBuild() (*Build, error) {
 		return q.build, nil
 	}
 	var queueJson QueueItemJson
-	if err := q.BindAPIJson(req.Param{}, &queueJson); err != nil {
+	if err := q.BindAPIJson(ReqParams{}, &queueJson); err != nil {
 		return nil, err
 	}
 	var err error
@@ -47,7 +43,7 @@ func (q *QueueItem) getWaitingBuild() (*Build, error) {
 		QueueId int    `json:"queueId"`
 	}
 	for _, build := range builds {
-		if err := build.BindAPIJson(req.Param{"tree": "queueId"}, &buildJson); err != nil {
+		if err := build.BindAPIJson(ReqParams{"tree": "queueId"}, &buildJson); err != nil {
 			return nil, err
 		}
 		if buildJson.QueueId == q.ID {
@@ -56,4 +52,3 @@ func (q *QueueItem) getWaitingBuild() (*Build, error) {
 	}
 	return nil, nil
 }
-

@@ -40,13 +40,13 @@ func doSetDescription(r Requester, description string) error {
 
 func doGetDescription(r Requester) (string, error) {
 	data := make(map[string]string)
-	if err := doBindAPIJson(r, req.Param{"tree": "description"}, data); err != nil {
+	if err := doBindAPIJson(r, ReqParams{"tree": "description"}, data); err != nil {
 		return "", err
 	}
 	return data["description"], nil
 }
 
-func doBindAPIJson(r Requester, param req.Param, v interface{}) error {
+func doBindAPIJson(r Requester, param ReqParams, v interface{}) error {
 	resp, err := r.Request("GET", "api/json", param)
 	if err != nil {
 		return err

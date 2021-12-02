@@ -1,9 +1,5 @@
 package jenkins
 
-import (
-	"github.com/imroc/req"
-)
-
 type ComputerSet struct {
 	Item
 }
@@ -15,7 +11,7 @@ func NewComputerSet(url string, jenkins *Jenkins) *ComputerSet {
 func (cs *ComputerSet) GetBuilds() ([]*Build, error) {
 	var csJson ComputerSetJson
 	var builds []*Build
-	if err := cs.BindAPIJson(req.Param{"tree": "computer[oneOffExecutors[currentExecutable[url]]]"}, &csJson); err != nil {
+	if err := cs.BindAPIJson(ReqParams{"tree": "computer[oneOffExecutors[currentExecutable[url]]]"}, &csJson); err != nil {
 		return builds, err
 	}
 	for _, c := range csJson.Computers {

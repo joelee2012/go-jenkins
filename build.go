@@ -1,9 +1,5 @@
 package jenkins
 
-import (
-	"github.com/imroc/req"
-)
-
 type Build struct {
 	Item
 	ID int
@@ -21,7 +17,7 @@ func NewBuild(url, class string, jenkins *Jenkins) *Build {
 }
 
 func (b *Build) GetConsoleText() (string, error) {
-	resp, err := b.Request("GET", "consoleText", req.Param{})
+	resp, err := b.Request("GET", "consoleText", ReqParams{})
 	if err != nil {
 		return "", err
 	}
@@ -30,7 +26,6 @@ func (b *Build) GetConsoleText() (string, error) {
 
 func (b *Build) IsBuilding() (bool, error) {
 	var status BuildShortJson
-	err := b.BindAPIJson(req.Param{"tree": "building"}, &status)
+	err := b.BindAPIJson(ReqParams{"tree": "building"}, &status)
 	return status.Building, err
 }
-

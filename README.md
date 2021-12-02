@@ -16,8 +16,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/imroc/req"
-	"github.com/joelee2012/go-jenkins/jenkins"
+	"github.com/joelee2012/go-jenkins"
 )
 
 func main() {
@@ -48,7 +47,7 @@ func main() {
 	if err := j.CreateJob("workflowjob1", xml); err != nil {
 		log.Fatalln(err)
 	}
-	qitem, err := J.BuildJob("workflowjob1", req.Param{})
+	qitem, err := J.BuildJob("workflowjob1", jenkins.ReqParams{})
 	if err != nil {
 		t.Errorf("expect build job successful, but got error:\n %v", err)
 	}
