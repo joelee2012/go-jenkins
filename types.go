@@ -1,6 +1,5 @@
 package jenkins
 
-
 type FolderJson struct {
 	Class           string        `json:"_class"`
 	Actions         []Actions     `json:"actions"`
@@ -377,6 +376,12 @@ type Computer struct {
 	AbsoluteRemotePath  interface{}      `json:"absoluteRemotePath,omitempty"`
 }
 
+type QueueJson struct {
+	Class             string          `json:"_class"`
+	DiscoverableItems []interface{}   `json:"discoverableItems"`
+	Items             []QueueItemJson `json:"items"`
+}
+
 type QueueItemJson struct {
 	Class        string      `json:"_class"`
 	Actions      []Actions   `json:"actions"`
@@ -406,22 +411,21 @@ type Executable struct {
 	URL    string `json:"url"`
 }
 
-
 type CredentialsJson struct {
-	Class string `json:"_class"`
-	Credentials []CredentialJson `json:"credentials"`
-	Description string `json:"description"`
-	DisplayName string `json:"displayName"`
-	FullDisplayName string `json:"fullDisplayName"`
-	FullName string `json:"fullName"`
-	Global bool `json:"global"`
-	URLName string `json:"urlName"`
+	Class           string           `json:"_class"`
+	Credentials     []CredentialJson `json:"credentials"`
+	Description     string           `json:"description"`
+	DisplayName     string           `json:"displayName"`
+	FullDisplayName string           `json:"fullDisplayName"`
+	FullName        string           `json:"fullName"`
+	Global          bool             `json:"global"`
+	URLName         string           `json:"urlName"`
 }
 
 type CredentialJson struct {
 	Description string `json:"description"`
 	DisplayName string `json:"displayName"`
-	FullName string `json:"fullName"`
-	ID string `json:"id"`
-	TypeName string `json:"typeName"`
+	FullName    string `json:"fullName"`
+	ID          string `json:"id"`
+	TypeName    string `json:"typeName"`
 }

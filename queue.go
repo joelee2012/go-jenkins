@@ -33,7 +33,7 @@ func (q *QueueItem) GetBuild() (*Build, error) {
 }
 
 func (q *QueueItem) getWaitingBuild() (*Build, error) {
-	cs := q.jenkins.GetComputerSet()
+	cs := q.jenkins.ComputerSet()
 	builds, err := cs.GetBuilds()
 	if err != nil {
 		return nil, err
@@ -51,4 +51,38 @@ func (q *QueueItem) getWaitingBuild() (*Build, error) {
 		}
 	}
 	return nil, nil
+}
+
+type Queue struct {
+	Item
+}
+
+func (q *Queue) List() ([]*QueueItem, error) {
+	var qJson QueueJson
+	if err := q.BindAPIJson(ReqParams{}, &qJson); err != nil {
+		return nil, err
+	}
+	var items []*QueueItem
+	for _, item := range qJson.Items {
+		items = append(items, NewQueueItem(item.URL, q.jenkins))
+	}
+	return items, nil
+}
+
+func (q *Queue) Get(id int) (*QueueItem, error) {
+	var qJson QueueJson
+	if err := q.BindAPIJson(ReqParams{}, &qJson); err != nil {
+		return nil, err
+	}
+	for _, item := range qJson.Items {
+		if item.ID == id {
+			return NewQueueItem(item.URL, q.jenkins), nil
+		}
+	}
+	return nil, nil
+}
+
+func (q *Queue) Cancel(id int) error {
+	_, err := q.Request("POST", "cancelItem", ReqParams{"id": id})
+	return err
 }

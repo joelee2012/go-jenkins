@@ -49,7 +49,7 @@ func main() {
 	}
 	qitem, err := J.BuildJob("workflowjob1", jenkins.ReqParams{})
 	if err != nil {
-		t.Errorf("expect build job successful, but got error:\n %v", err)
+		log.Fatalln(err)
 	}
 	var build *Build
 	for {
@@ -67,7 +67,7 @@ func main() {
 	for {
 		building, err := build.IsBuilding()
 		if err != nil {
-			t.Error(err)
+			log.Fatalln(err)
 		}
 		if !building {
 			break

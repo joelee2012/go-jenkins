@@ -67,10 +67,6 @@ func (j *Jenkins) GetJob(fullName string) (*Job, error) {
 	return folder.Get(shortName)
 }
 
-// func (j *Jenkins) GetJobs(depth int) ([]Job, error) {
-// 	return NewJob(j.Url, "Folder", j).GetJobs(depth)
-// }
-
 func (j *Jenkins) CreateJob(fullName, xml string) error {
 	folder, shortName := j.resolveJob(fullName)
 	return folder.Create(shortName, xml)
@@ -111,7 +107,7 @@ func (j *Jenkins) URLToName(url string) (string, error) {
 	return strings.Trim(strings.ReplaceAll(path, "/job/", "/"), "/"), nil
 }
 
-func (j *Jenkins) GetComputerSet() *ComputerSet {
+func (j *Jenkins) ComputerSet() *ComputerSet {
 	return NewComputerSet(j.URL+"computer/", j)
 }
 
