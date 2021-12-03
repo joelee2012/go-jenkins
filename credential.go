@@ -24,6 +24,14 @@ func (cs *Credentials) Create(xml string) error {
 	return err
 }
 
+func (cs *Credentials) Delete(name string) error {
+	cred, err := cs.Get(name)
+	if err != nil {
+		return err
+	}
+	return cred.Delete()
+}
+
 func (cs *Credentials) List() ([]*Credential, error) {
 	var credsJson CredentialsJson
 	if err := cs.BindAPIJson(ReqParams{"depth": "1"}, &credsJson); err != nil {
@@ -40,7 +48,7 @@ type Credential struct {
 	Item
 }
 
-func (c *Credential) Delete(name string) error {
+func (c *Credential) Delete() error {
 	return doDelete(c)
 }
 

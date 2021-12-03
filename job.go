@@ -196,3 +196,7 @@ func (j *Job) List(depth int) ([]*Job, error) {
 	_resolve(&folderJson)
 	return jobs, nil
 }
+
+func (j *Job) Credentials() *Credentials {
+	return &Credentials{Item: *NewItem(j.URL+"credentials/store/folder/domain/_/", "Credentials", j.jenkins)}
+}

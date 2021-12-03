@@ -36,10 +36,6 @@ func (i *Item) String() string {
 	return fmt.Sprintf("<%s: %s>", i.Class, i.URL)
 }
 
-func (i *Item) GetClass() string {
-	return i.Class
-}
-
 var delimeter = regexp.MustCompile(`\w+$`)
 
 func parseClass(text string) string {

@@ -209,6 +209,25 @@ func TestBuildable(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, buildable)
 }
+
+func TestCredentials(t *testing.T) {
+	J.CreateJob("folder", FolderConfig)
+	defer J.DeleteJob("folder")
+	folder, err := J.GetJob("folder")
+	assert.Nil(t, err)
+	credsManager := folder.Credentials()
+	creds, err := credsManager.List()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(creds))
+	data, err := os.ReadFile("tests_data/credential.xml")
+	assert.Nil(t, err)
+	assert.Nil(t, credsManager.Create(string(data)))
+	creds, err = credsManager.List()
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(creds))
+	assert.Nil(t, credsManager.Delete("user-id"))
+}
+
 func TestMain(m *testing.M) {
 	if err := SetUp(); err != nil {
 		log.Fatalln(err)
