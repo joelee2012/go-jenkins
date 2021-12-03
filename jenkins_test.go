@@ -12,6 +12,7 @@ import (
 var J *Jenkins
 var PipelineConfig string
 var FolderConfig string
+var CredentialConfig string
 
 func SetUp() error {
 	var err error
@@ -45,6 +46,14 @@ func SetUp() error {
 	  <folderViews/>
 	  <healthMetrics/>
 	</com.cloudbees.hudson.plugins.folder.Folder>`
+
+	CredentialConfig = `<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+	<scope>GLOBAL</scope>
+	<id>user-id</id>
+	<username>user-name</username>
+	<password>user-password</password>
+	<description>user id for testing</description>
+  </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>`
 	return nil
 }
 
@@ -219,9 +228,7 @@ func TestCredentials(t *testing.T) {
 	creds, err := credsManager.List()
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(creds))
-	data, err := os.ReadFile("tests_data/credential.xml")
-	assert.Nil(t, err)
-	assert.Nil(t, credsManager.Create(string(data)))
+	assert.Nil(t, credsManager.Create(CredentialConfig))
 	creds, err = credsManager.List()
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(creds))
