@@ -27,6 +27,12 @@ func basicAuth(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
+// Create new Jenkins instance
+// J, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
+// if err != nil {
+// 	return err
+// }
+// fmt.Println(J)
 func NewJenkins(url, user, password string) (*Jenkins, error) {
 	url = appendSlash(url)
 	header := make(http.Header)
@@ -135,6 +141,3 @@ func (j *Jenkins) ListJobs(depth int) ([]*Job, error) {
 func (j *Jenkins) Credentials() *Credentials {
 	return &Credentials{Item: *NewItem(j.URL+"credentials/store/system/domain/_/", "Credentials", j)}
 }
-
-// func (j *Jenkins) ListCredentials(depth int) ([]*Job, error) {
-// }
