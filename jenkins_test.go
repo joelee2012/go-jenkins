@@ -3,9 +3,10 @@ package jenkins
 import (
 	"log"
 	"os"
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var J *Jenkins
@@ -14,7 +15,7 @@ var FolderConfig string
 
 func SetUp() error {
 	var err error
-	J, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PSW"))
+	J, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
 	if err != nil {
 		return err
 	}
@@ -56,26 +57,46 @@ func TestNewJenkins(t *testing.T) {
 
 func TestGetVersion(t *testing.T) {
 	version, err := J.GetVersion()
-	if err != nil {
-		t.Errorf("NewJenkins failed with error: %v", err)
-	}
-	if version != os.Getenv("JENKINS_VERSION") {
-		t.Errorf("expect version %s, but got %s", os.Getenv("JENKINS_VERSION"), version)
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, os.Getenv("JENKINS_VERSION"), version)
 }
 
 func TestCreateJob(t *testing.T) {
-	if err := J.CreateJob("go-test1", PipelineConfig); err != nil {
-		t.Errorf("expect create job successful, but got error:\n %v", err)
-	}
-	defer J.DeleteJob("go-test1")
-	job, err := J.GetJob("go-test1")
-	if err != nil {
-		t.Error(err)
-	}
-	if job.GetName() != "go-test1" {
-		t.Error("expect get job, but got nil")
-	}
+	assert.Nil(t, J.CreateJob("folder", FolderConfig))
+	assert.Nil(t, J.CreateJob("folder/pipeline", PipelineConfig))
+	defer J.DeleteJob("folder")
+	folder, err := J.GetJob("folder")
+	assert.Nil(t, err)
+	assert.IsType(t, &Job{}, folder)
+	folderParent, err := folder.GetParent()
+	assert.Nil(t, err)
+	assert.Nil(t, folderParent)
+	xml, err := folder.GetConfigure()
+	assert.Nil(t, err)
+	assert.NotEmpty(t, xml)
+
+	pipeline, _ := J.GetJob("folder/pipeline")
+	jobParent, err := pipeline.GetParent()
+	assert.Nil(t, err)
+	assert.IsType(t, &Job{}, jobParent)
+
+	assert.Equal(t, "pipeline", pipeline.GetName())
+	assert.Equal(t, "folder » pipeline", pipeline.GetFullDisplayName())
+	assert.Equal(t, "folder/pipeline", pipeline.GetFullName())
+}
+
+func TestListJob(t *testing.T) {
+	assert.Nil(t, J.CreateJob("folder", FolderConfig))
+	assert.Nil(t, J.CreateJob("folder/pipeline", PipelineConfig))
+	defer J.DeleteJob("folder")
+	jobs, err := J.ListJobs(0)
+	assert.Nil(t, err)
+	assert.Equal(t, 10, len(jobs))
+	jobs, _ = J.ListJobs(1)
+	assert.Equal(t, 17, len(jobs))
+	pipeline, _ := J.GetJob("folder/pipeline")
+	_, err = pipeline.List(0)
+	assert.NotNil(t, err)
 }
 
 func TestGetParent(t *testing.T) {
@@ -84,27 +105,13 @@ func TestGetParent(t *testing.T) {
 	defer J.DeleteJob("folder")
 	folder, _ := J.GetJob("folder")
 	folderParent, err := folder.GetParent()
-	if err != nil {
-		t.Errorf("expect get parent of folder, but got %v", err)
-	}
-	if folderParent != nil {
-		t.Errorf("expect parent of folder is nil, but got %v", folderParent)
-	}
+	assert.Nil(t, err)
+	assert.Nil(t, folderParent)
+
 	pipeline, _ := J.GetJob("folder/pipeline")
 	jobParent, err := pipeline.GetParent()
-	if err != nil {
-		t.Errorf("expect get parent of pipeline, but got %v", err)
-	}
-	if jobParent == nil {
-		t.Error("expect parent of pipeline, but got nil")
-	}
-}
-
-func TestGetJob(t *testing.T) {
-	job, _ := J.GetJob("notexist")
-	if job != nil {
-		t.Errorf("expect no such job, but got %v", job)
-	}
+	assert.Nil(t, err)
+	assert.IsType(t, &Job{}, jobParent)
 }
 
 func TestNameToUrl(t *testing.T) {
@@ -122,9 +129,7 @@ func TestNameToUrl(t *testing.T) {
 		{"job/job", "job/job/job/job/"},
 	}
 	for _, test := range tests {
-		if url := J.NameToURL(test.given); url != J.URL+test.expect {
-			t.Errorf("expect NameToUrl(%q) return %q, but got %q", test.given, J.URL+test.expect, url)
-		}
+		assert.Equal(t, J.URL+test.expect, J.NameToURL(test.given))
 	}
 }
 
@@ -137,46 +142,23 @@ func TestUrlToName(t *testing.T) {
 		{"job/job", "job/job/job/job"},
 	}
 	for _, test := range tests {
-		if name, _ := J.URLToName(J.URL + test.given); name != test.expect {
-			t.Errorf("expect UrlToName(%q) return %q, but got %q", J.URL+test.given, test.expect, name)
-		}
+		name, _ := J.URLToName(J.URL + test.given)
+		assert.Equal(t, test.expect, name)
 	}
-	given := "http://0.0.0.1/job/folder1/"
-	if name, err := J.URLToName("http://0.0.0.1/job/folder1/"); err == nil {
-		t.Errorf("expect UrlToName(%q) return error, but got %q", given, name)
-	}
+	_, err := J.URLToName("http://0.0.0.1/job/folder1/")
+	assert.NotNil(t, err)
 }
 
-func TestGetConfig(t *testing.T) {
-	if err := J.CreateJob("go-test1", PipelineConfig); err != nil {
-		t.Errorf("expect create job successful, but got error:\n %v", err)
-	}
-	defer J.DeleteJob("go-test1")
-	job, _ := J.GetJob("go-test1")
-	if job == nil {
-		t.Errorf("expect no such job, but got %v", job)
-	}
-	xml, _ := job.GetConfigure()
-	if xml == "" {
-		t.Error("expect get job config, but got empty")
-	}
-}
 func TestBuildJob(t *testing.T) {
-	if err := J.CreateJob("go-test1", PipelineConfig); err != nil {
-		t.Errorf("expect create job successful, but got error:\n %v", err)
-	}
+	assert.Nil(t, J.CreateJob("go-test1", PipelineConfig))
 	defer J.DeleteJob("go-test1")
 	qitem, err := J.BuildJob("go-test1", ReqParams{})
-	if err != nil {
-		t.Errorf("expect build job successful, but got error:\n %v", err)
-	}
+	assert.Nil(t, err)
 	var build *Build
 	for {
 		time.Sleep(1 * time.Second)
 		build, err = qitem.GetBuild()
-		if err != nil {
-			log.Fatalln(err)
-		}
+		assert.Nil(t, err)
 		if build != nil {
 			break
 		}
@@ -184,9 +166,7 @@ func TestBuildJob(t *testing.T) {
 	// waiting build to finish
 	for {
 		building, err := build.IsBuilding()
-		if err != nil {
-			t.Error(err)
-		}
+		assert.Nil(t, err)
 		if !building {
 			break
 		}
@@ -194,34 +174,41 @@ func TestBuildJob(t *testing.T) {
 	}
 	// get console output
 	text, err := build.GetConsoleText()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	version, _ := J.GetVersion()
-	if !strings.Contains(text, version) {
-		t.Errorf("expect console text contain %s, but got: %s", version, text)
-	}
-
+	assert.Nil(t, err)
+	version, err := J.GetVersion()
+	assert.Nil(t, err)
+	assert.Contains(t, text, version)
 }
 
 func TestRename(t *testing.T) {
-	if err := J.CreateJob("go-test1", PipelineConfig); err != nil {
-		t.Errorf("expect create job successful, but got error:\n %v", err)
-	}
+	assert.Nil(t, J.CreateJob("go-test1", PipelineConfig))
 	defer J.DeleteJob("go-test2")
 	job, err := J.GetJob("go-test1")
-	if err != nil {
-		t.Error(err)
-	}
-
-	if err := job.Rename("go-test2"); err != nil {
-		t.Errorf("rename got error: %v", err)
-	}
-	if job.GetName() != "go-test2" {
-		t.Errorf("expect job.GetName() == 'go-test2', but got %s", job.GetName())
-	}
+	assert.Nil(t, err)
+	assert.Nil(t, job.Rename("go-test2"))
+	assert.Equal(t, "go-test2", job.GetName())
 }
 
+func TestBuildable(t *testing.T) {
+	assert.Nil(t, J.CreateJob("go-test2", PipelineConfig))
+	defer J.DeleteJob("go-test2")
+	job, err := J.GetJob("go-test2")
+	assert.Nil(t, err)
+	assert.IsType(t, &Job{}, job)
+	buildable, err := job.IsBuildable()
+	assert.Nil(t, err)
+	assert.True(t, buildable)
+	// disable job
+	assert.Nil(t, job.Disable())
+	buildable, err = job.IsBuildable()
+	assert.Nil(t, err)
+	assert.False(t, buildable)
+	// enable job
+	assert.Nil(t, job.Enable())
+	buildable, err = job.IsBuildable()
+	assert.Nil(t, err)
+	assert.True(t, buildable)
+}
 func TestMain(m *testing.M) {
 	if err := SetUp(); err != nil {
 		log.Fatalln(err)

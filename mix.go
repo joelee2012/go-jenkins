@@ -53,3 +53,13 @@ func doBindAPIJson(r Requester, param ReqParams, v interface{}) error {
 	}
 	return resp.ToJSON(v)
 }
+
+func doDisable(r Requester) error {
+	_, err := r.Request("POST", "disable", ReqParams{})
+	return err
+}
+
+func doEnable(r Requester) error {
+	_, err := r.Request("POST", "enable", ReqParams{})
+	return err
+}

@@ -58,6 +58,14 @@ func (j *Job) SetConfigure(xml string) error {
 	return doSetConfigure(j, xml)
 }
 
+func (j *Job) Disable() error {
+	return doDisable(j)
+}
+
+func (j *Job) Enable() error {
+	return doEnable(j)
+}
+
 func (j *Job) IsBuildable() (bool, error) {
 	var apiJson struct {
 		Class     string `json:"_class"`
