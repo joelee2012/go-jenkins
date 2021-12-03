@@ -17,7 +17,7 @@ function start {
   cat <<EOF | tee "${REPO_ROOT}"/env.sh
 export JENKINS_URL='http://${ip}:${port}/'
 export JENKINS_USER="admin"
-export JENKINS_PSW='${password}'
+export JENKINS_PASSWORD='${password}'
 export JENKINS_VERSION='${version}'
 EOF
 }
