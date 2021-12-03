@@ -226,6 +226,9 @@ func TestCredentials(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(creds))
 	assert.Nil(t, credsManager.Delete("user-id"))
+	creds, err = credsManager.List()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(creds))
 }
 
 func TestMain(m *testing.M) {

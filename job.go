@@ -200,3 +200,41 @@ func (j *Job) List(depth int) ([]*Job, error) {
 func (j *Job) Credentials() *Credentials {
 	return &Credentials{Item: *NewItem(j.URL+"credentials/store/folder/domain/_/", "Credentials", j.jenkins)}
 }
+
+func (j *Job) GetFirstBuild() (*Build, error) {
+	return j.getBuildByName("firstBuild")
+}
+func (j *Job) GetLastBuild() (*Build, error) {
+	return j.getBuildByName("lastBuild")
+}
+func (j *Job) GetLastCompleteBuild() (*Build, error) {
+	return j.getBuildByName("lastCompletedBuild")
+}
+func (j *Job) GetLastFailedBuild() (*Build, error) {
+	return j.getBuildByName("lastFailedBuild")
+}
+func (j *Job) GetLastStableBuild() (*Build, error) {
+	return j.getBuildByName("lastStableBuild")
+}
+func (j *Job) GetLastUnstableBuild() (*Build, error) {
+	return j.getBuildByName("lastUnstableBuild")
+}
+func (j *Job) GetLastSuccessfulBuild() (*Build, error) {
+	return j.getBuildByName("lastSuccessfulBuild")
+}
+func (j *Job) GetLastUnsucessfulBuild() (*Build, error) {
+	return j.getBuildByName("lastUnsuccessfulBuild")
+}
+
+func (j *Job) getBuildByName(name string) (*Build, error) {
+	var jobJson map[string]interface{}
+	if err := j.BindAPIJson(ReqParams{"tree": name + "[url]"}, &jobJson); err != nil {
+		return nil, err
+	}
+	switch jobJson[name].(type) {
+	case map[string]interface{}:
+		build := jobJson[name].(map[string]interface{})
+		return NewBuild(build["url"].(string), build["_class"].(string), j.jenkins), nil
+	}
+	return nil, nil
+}
