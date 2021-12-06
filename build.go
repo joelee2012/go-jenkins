@@ -1,5 +1,7 @@
 package jenkins
 
+import "regexp"
+
 type Build struct {
 	Item
 	ID int
@@ -28,4 +30,29 @@ func (b *Build) IsBuilding() (bool, error) {
 	var status BuildShortJson
 	err := b.BindAPIJson(ReqParams{"tree": "building"}, &status)
 	return status.Building, err
+}
+
+func (b *Build) Delete() error {
+	return doDelete(b)
+}
+
+func (b *Build) Stop() error {
+	_, err := b.Request("POST", "stop")
+	return err
+}
+
+func (b *Build) Kill() error {
+	_, err := b.Request("POST", "kill")
+	return err
+}
+
+func (b *Build) Term() error {
+	_, err := b.Request("POST", "term")
+	return err
+}
+
+func (b *Build) GetJob() (*Job, error) {
+	re := regexp.MustCompile(`\w+[/]?$`)
+	jobName, _ := b.jenkins.URLToName(re.ReplaceAllLiteralString(b.URL, ""))
+	return b.jenkins.GetJob(jobName)
 }

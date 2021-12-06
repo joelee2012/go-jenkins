@@ -14,6 +14,17 @@ func NewQueueItem(url string, jenkins *Jenkins) *QueueItem {
 	}
 }
 
+func (q *QueueItem) GetJob() (*Job, error) {
+	var queueJson QueueItemJson
+	if err := q.BindAPIJson(ReqParams{}, &queueJson); err != nil {
+		return nil, err
+	}
+	if parseClass(queueJson.Class) == "BuildableItem" {
+		return q.build.GetJob()
+	}
+	return NewJob(queueJson.Task.URL, queueJson.Task.Class, q.jenkins), nil
+}
+
 func (q *QueueItem) GetBuild() (*Build, error) {
 	if q.build != nil {
 		return q.build, nil
