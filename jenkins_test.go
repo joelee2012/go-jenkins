@@ -59,9 +59,7 @@ func SetUp() error {
 
 func TestNewJenkins(t *testing.T) {
 	expect := "Jenkins-Crumb"
-	if J.Crumb.RequestFields != expect {
-		t.Errorf("expect j.RequestFields has value %q, but got %q", expect, J.Crumb.RequestFields)
-	}
+	assert.Equal(t, J.Crumb.RequestFields, expect)
 }
 
 func TestGetVersion(t *testing.T) {

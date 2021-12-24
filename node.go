@@ -22,3 +22,7 @@ func (cs *ComputerSet) GetBuilds() ([]*Build, error) {
 	}
 	return builds, nil
 }
+
+type Computer struct {
+	Item
+}

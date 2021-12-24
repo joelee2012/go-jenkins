@@ -94,6 +94,5 @@ func (q *Queue) Get(id int) (*QueueItem, error) {
 }
 
 func (q *Queue) Cancel(id int) error {
-	_, err := q.Request("POST", "cancelItem", ReqParams{"id": id})
-	return err
+	return doRequestAndDropResp(q, "POST", "cancelItem", ReqParams{"id": id})
 }

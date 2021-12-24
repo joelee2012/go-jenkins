@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strings"
@@ -36,9 +37,8 @@ func (j *Job) Move(path string) error {
 	j.URL = url.String()
 	return nil
 }
-
-func (j *Job) Delete() error {
-	return doDelete(j)
+func (j *Job) Copy(src, dest string) error {
+	return doRequestAndDropResp(j, "POST", "createItem", ReqParams{"name": dest, "mode": "copy", "from": src})
 }
 
 func (j *Job) GetParent() (*Job, error) {
@@ -129,14 +129,6 @@ func (j *Job) Build(param ReqParams) (*QueueItem, error) {
 	return NewQueueItem(url.String(), j.jenkins), nil
 }
 
-type JobShortJson struct {
-	Class  string           `json:"_class"`
-	Builds []BuildShortJson `json:"builds"`
-	Name   string           `json:"name"`
-	URL    string           `json:"url"`
-	Jobs   []JobShortJson   `json:"jobs"`
-}
-
 func (j *Job) GetBuild(number int) (*Build, error) {
 	var jobJson JobShortJson
 	err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson)
@@ -166,8 +158,7 @@ func (j *Job) Get(name string) (*Job, error) {
 }
 
 func (j *Job) Create(name, xml string) error {
-	_, err := j.Request("POST", "createItem", ReqParams{"name": name}, req.BodyXML(xml))
-	return err
+	return doRequestAndDropResp(j, "POST", "createItem", ReqParams{"name": name}, req.BodyXML(xml))
 }
 
 func (j *Job) List(depth int) ([]*Job, error) {
@@ -227,14 +218,21 @@ func (j *Job) GetLastUnsucessfulBuild() (*Build, error) {
 }
 
 func (j *Job) getBuildByName(name string) (*Build, error) {
-	var jobJson map[string]interface{}
+	var jobJson map[string]json.RawMessage
 	if err := j.BindAPIJson(ReqParams{"tree": name + "[url]"}, &jobJson); err != nil {
 		return nil, err
 	}
-	switch jobJson[name].(type) {
-	case map[string]interface{}:
-		build := jobJson[name].(map[string]interface{})
-		return NewBuild(build["url"].(string), build["_class"].(string), j.jenkins), nil
+	var build BuildShortJson
+	if err := json.Unmarshal(jobJson[name], &build); err != nil {
+		return nil, err
 	}
-	return nil, nil
+	return NewBuild(build.URL, build.Class, j.jenkins), nil
+}
+
+type JobShortJson struct {
+	Class  string           `json:"_class"`
+	Builds []BuildShortJson `json:"builds"`
+	Name   string           `json:"name"`
+	URL    string           `json:"url"`
+	Jobs   []JobShortJson   `json:"jobs"`
 }

@@ -1,6 +1,8 @@
 package jenkins
 
-import "regexp"
+import (
+	"regexp"
+)
 
 type Build struct {
 	Item
@@ -37,22 +39,50 @@ func (b *Build) Delete() error {
 }
 
 func (b *Build) Stop() error {
-	_, err := b.Request("POST", "stop")
-	return err
+	return doRequestAndDropResp(b, "POST", "stop")
 }
 
 func (b *Build) Kill() error {
-	_, err := b.Request("POST", "kill")
-	return err
+	return doRequestAndDropResp(b, "POST", "kill")
 }
 
 func (b *Build) Term() error {
-	_, err := b.Request("POST", "term")
-	return err
+	return doRequestAndDropResp(b, "POST", "term")
 }
 
+var re = regexp.MustCompile(`\w+[/]?$`)
+
 func (b *Build) GetJob() (*Job, error) {
-	re := regexp.MustCompile(`\w+[/]?$`)
 	jobName, _ := b.jenkins.URLToName(re.ReplaceAllLiteralString(b.URL, ""))
 	return b.jenkins.GetJob(jobName)
+}
+
+func (b *Build) GetProgressConsoleText(kind string, f func(line string) error) error {
+	var entry string
+	switch kind {
+	case "html":
+		entry = "logText/progressiveHtml"
+	case "text":
+		entry = "logText/progressiveText"
+	default:
+		panic("kind must be html or text")
+	}
+	start := "0"
+	for {
+		resp, err := b.Request("GET", entry, ReqParams{"start": start})
+		if err != nil {
+			return err
+		}
+		if start == resp.Response().Header.Get("X-Text-Size") {
+			continue
+		}
+		if err := f(resp.String()); err != nil {
+			return err
+		}
+		if resp.Response().Header.Get("X-More-Data") != "True" {
+			break
+		}
+		start = resp.Response().Header.Get("X-Text-Size")
+	}
+	return nil
 }
