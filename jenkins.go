@@ -44,9 +44,6 @@ func NewJenkins(url, user, password string) (*Jenkins, error) {
 	j.Req.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
-	if _, err := j.GetCrumb(); err != nil {
-		return nil, err
-	}
 	return &j, nil
 }
 

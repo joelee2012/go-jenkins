@@ -99,13 +99,6 @@ func (j *Job) SetDescription(description string) error {
 }
 
 func (j *Job) Build(param ReqParams) (*QueueItem, error) {
-	buildable, err := j.IsBuildable()
-	if err != nil {
-		return nil, err
-	}
-	if !buildable {
-		return nil, fmt.Errorf("%v is not buildable", j)
-	}
 	entry := func() string {
 		reserved := []string{"token", "delay"}
 		for k := range param {
@@ -131,8 +124,7 @@ func (j *Job) Build(param ReqParams) (*QueueItem, error) {
 
 func (j *Job) GetBuild(number int) (*Build, error) {
 	var jobJson JobShortJson
-	err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson)
-	if err != nil {
+	if err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson); err != nil {
 		return nil, err
 	}
 
@@ -158,12 +150,22 @@ func (j *Job) Get(name string) (*Job, error) {
 }
 
 func (j *Job) Create(name, xml string) error {
+	if err := j.IsFolder(); err != nil {
+		return err
+	}
 	return doRequestAndDropResp(j, "POST", "createItem", ReqParams{"name": name}, req.BodyXML(xml))
 }
 
+func (j *Job) IsFolder() error {
+	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
+		return nil
+	}
+	return fmt.Errorf("%T is not a folder", j)
+}
+
 func (j *Job) List(depth int) ([]*Job, error) {
-	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("only Folder or WorkflowMultiBranchProject can be listed")
+	if err := j.IsFolder(); err != nil {
+		return nil, err
 	}
 	query := "jobs[url]"
 	qf := "jobs[url,%s]"
@@ -227,6 +229,23 @@ func (j *Job) getBuildByName(name string) (*Build, error) {
 		return nil, err
 	}
 	return NewBuild(build.URL, build.Class, j.jenkins), nil
+}
+
+func (j *Job) Delete() error {
+	return doDelete(j)
+}
+
+func (j *Job) ListBuilds() ([]*Build, error) {
+	var jobJson JobShortJson
+	var builds []*Build
+	if err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson); err != nil {
+		return nil, err
+	}
+
+	for _, build := range jobJson.Builds {
+		builds = append(builds, NewBuild(build.URL, parseClass(build.Class), j.jenkins))
+	}
+	return builds, nil
 }
 
 type JobShortJson struct {

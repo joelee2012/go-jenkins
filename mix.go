@@ -7,6 +7,9 @@ import (
 )
 
 func doRequest(j *Jenkins, method, url string, vs ...interface{}) (*req.Resp, error) {
+	if _, err := j.GetCrumb(); err != nil {
+		return nil, err
+	}
 	vs = append(vs, j.Header)
 	resp, err := j.Req.Do(method, url, vs...)
 	if err != nil {
@@ -63,3 +66,11 @@ func doDisable(r Requester) error {
 func doEnable(r Requester) error {
 	return doRequestAndDropResp(r, "POST", "enable")
 }
+
+// type mix struct {
+// 	Requester
+// }
+
+// func (m *mix) enable() error {
+// 	return doRequestAndDropResp(m, "POST", "enable")
+// }

@@ -223,11 +223,11 @@ type Property struct {
 }
 
 type ComputerSetJson struct {
-	Class          string     `json:"_class"`
-	BusyExecutors  int        `json:"busyExecutors"`
+	Class          string         `json:"_class"`
+	BusyExecutors  int            `json:"busyExecutors"`
 	Computers      []ComputerJson `json:"computer"`
-	DisplayName    string     `json:"displayName"`
-	TotalExecutors int        `json:"totalExecutors"`
+	DisplayName    string         `json:"displayName"`
+	TotalExecutors int            `json:"totalExecutors"`
 }
 
 type Nodes struct {
@@ -268,12 +268,12 @@ type ChangeSet struct {
 	Kind  interface{}   `json:"kind"`
 }
 
-type Executors struct {
-	Idle              bool              `json:"idle"`
-	LikelyStuck       bool              `json:"likelyStuck"`
-	Number            int               `json:"number"`
-	Progress          int               `json:"progress"`
-	CurrentExecutable CurrentExecutable `json:"currentExecutable,omitempty"`
+type Executor struct {
+	Idle              bool               `json:"idle"`
+	LikelyStuck       bool               `json:"likelyStuck"`
+	Number            int                `json:"number"`
+	Progress          int                `json:"progress"`
+	CurrentExecutable *CurrentExecutable `json:"currentExecutable,omitempty"`
 }
 
 type HudsonNodeMonitorsSwapSpaceMonitor struct {
@@ -360,7 +360,7 @@ type ComputerJson struct {
 	AssignedLabels      []AssignedLabels `json:"assignedLabels"`
 	Description         string           `json:"description"`
 	DisplayName         string           `json:"displayName"`
-	Executors           []Executors      `json:"executors"`
+	Executors           []*Executor      `json:"executors"`
 	Icon                string           `json:"icon"`
 	IconClassName       string           `json:"iconClassName"`
 	Idle                bool             `json:"idle"`
@@ -372,7 +372,7 @@ type ComputerJson struct {
 	Offline             bool             `json:"offline"`
 	OfflineCause        interface{}      `json:"offlineCause"`
 	OfflineCauseReason  string           `json:"offlineCauseReason"`
-	OneOffExecutors     []OneOffExecutor `json:"oneOffExecutors"`
+	OneOffExecutors     []*Executor      `json:"oneOffExecutors"`
 	TemporarilyOffline  bool             `json:"temporarilyOffline"`
 	AbsoluteRemotePath  interface{}      `json:"absoluteRemotePath,omitempty"`
 }

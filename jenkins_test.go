@@ -59,7 +59,9 @@ func SetUp() error {
 
 func TestNewJenkins(t *testing.T) {
 	expect := "Jenkins-Crumb"
-	assert.Equal(t, J.Crumb.RequestFields, expect)
+	crumb, err := J.GetCrumb()
+	assert.Nil(t, err)
+	assert.Equal(t, crumb.RequestFields, expect)
 }
 
 func TestGetVersion(t *testing.T) {
@@ -90,9 +92,13 @@ func TestCreateJob(t *testing.T) {
 	assert.Equal(t, "pipeline", pipeline.GetName())
 	assert.Equal(t, "folder » pipeline", pipeline.GetFullDisplayName())
 	assert.Equal(t, "folder/pipeline", pipeline.GetFullName())
+	noexist, err := pipeline.Get("abc")
+	assert.Nil(t, err)
+	assert.Equal(t, noexist.Class, "abc")
 }
 
 func TestListJob(t *testing.T) {
+	t.Skip()
 	assert.Nil(t, J.CreateJob("folder", FolderConfig))
 	assert.Nil(t, J.CreateJob("folder/pipeline", PipelineConfig))
 	defer J.DeleteJob("folder")
@@ -218,6 +224,7 @@ func TestBuildable(t *testing.T) {
 }
 
 func TestCredentials(t *testing.T) {
+	t.Skip()
 	J.CreateJob("folder", FolderConfig)
 	defer J.DeleteJob("folder")
 	folder, err := J.GetJob("folder")
