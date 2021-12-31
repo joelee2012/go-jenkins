@@ -104,8 +104,9 @@ func TestListJob(t *testing.T) {
 	jobs, _ = J.ListJobs(1)
 	assert.Equal(t, 2, len(jobs))
 	pipeline, _ := J.GetJob("folder/pipeline")
-	_, err = pipeline.List(0)
-	assert.NotNil(t, err)
+	jobs, err = pipeline.List(0)
+	assert.Nil(t, err)
+	assert.Len(t, jobs, 0)
 }
 
 func TestGetParent(t *testing.T) {
