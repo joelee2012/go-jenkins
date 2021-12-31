@@ -3,7 +3,7 @@ package jenkins
 import "github.com/imroc/req"
 
 type Credentials struct {
-	Item
+	*Item
 }
 
 func (cs *Credentials) Get(name string) (*Credential, error) {
@@ -14,7 +14,7 @@ func (cs *Credentials) Get(name string) (*Credential, error) {
 	if credsJson.Credentials != nil {
 		for _, cred := range credsJson.Credentials {
 			if cred.ID == name {
-				return &Credential{Item: *NewItem(cs.URL+"credential/"+name, "Credential", cs.jenkins)}, nil
+				return &Credential{Item: NewItem(cs.URL+"credential/"+name, "Credential", cs.jenkins)}, nil
 			}
 		}
 	}
@@ -41,13 +41,13 @@ func (cs *Credentials) List() ([]*Credential, error) {
 	}
 	var creds []*Credential
 	for _, cred := range credsJson.Credentials {
-		creds = append(creds, &Credential{Item: *NewItem(cs.URL+"credential/"+cred.ID, "Credential", cs.jenkins)})
+		creds = append(creds, &Credential{Item: NewItem(cs.URL+"credential/"+cred.ID, "Credential", cs.jenkins)})
 	}
 	return creds, nil
 }
 
 type Credential struct {
-	Item
+	*Item
 }
 
 func (c *Credential) Delete() error {

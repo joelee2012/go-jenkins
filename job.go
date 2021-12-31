@@ -10,11 +10,11 @@ import (
 )
 
 type Job struct {
-	Item
+	*Item
 }
 
 func NewJob(url, class string, jenkins *Jenkins) *Job {
-	return &Job{Item: *NewItem(url, class, jenkins)}
+	return &Job{Item: NewItem(url, class, jenkins)}
 }
 
 func (j *Job) Rename(name string) error {
@@ -146,13 +146,10 @@ func (j *Job) Get(name string) (*Job, error) {
 			return NewJob(job.URL, job.Class, j.jenkins), nil
 		}
 	}
-	return nil, fmt.Errorf("no such job %s", name)
+	return nil, nil
 }
 
 func (j *Job) Create(name, xml string) error {
-	if err := j.IsFolder(); err != nil {
-		return err
-	}
 	return doRequestAndDropResp(j, "POST", "createItem", ReqParams{"name": name}, req.BodyXML(xml))
 }
 
@@ -164,9 +161,6 @@ func (j *Job) IsFolder() error {
 }
 
 func (j *Job) List(depth int) ([]*Job, error) {
-	if err := j.IsFolder(); err != nil {
-		return nil, err
-	}
 	query := "jobs[url]"
 	qf := "jobs[url,%s]"
 	for i := 0; i < depth; i++ {
@@ -191,7 +185,7 @@ func (j *Job) List(depth int) ([]*Job, error) {
 }
 
 func (j *Job) Credentials() *Credentials {
-	return &Credentials{Item: *NewItem(j.URL+"credentials/store/folder/domain/_/", "Credentials", j.jenkins)}
+	return &Credentials{Item: NewItem(j.URL+"credentials/store/folder/domain/_/", "Credentials", j.jenkins)}
 }
 
 func (j *Job) GetFirstBuild() (*Build, error) {

@@ -3,11 +3,11 @@ package jenkins
 import "strings"
 
 type ComputerSet struct {
-	Item
+	*Item
 }
 
 func NewComputerSet(url string, jenkins *Jenkins) *ComputerSet {
-	return &ComputerSet{Item: *NewItem(url, "ComputerSet", jenkins)}
+	return &ComputerSet{Item: NewItem(url, "ComputerSet", jenkins)}
 }
 
 func (cs *ComputerSet) GetBuilds() ([]*Build, error) {
@@ -47,9 +47,9 @@ func (cs *ComputerSet) Get(name string) (*Computer, error) {
 	for _, c := range csJson.Computers {
 		if name == c.DisplayName {
 			if name, ok := nodeName[c.DisplayName]; ok {
-				return &Computer{Item: *NewItem(cs.jenkins.URL+name, c.Class, cs.jenkins)}, nil
+				return &Computer{Item: NewItem(cs.jenkins.URL+name, c.Class, cs.jenkins)}, nil
 			} else {
-				return &Computer{Item: *NewItem(cs.jenkins.URL+c.DisplayName, c.Class, cs.jenkins)}, nil
+				return &Computer{Item: NewItem(cs.jenkins.URL+c.DisplayName, c.Class, cs.jenkins)}, nil
 			}
 		}
 	}
@@ -65,16 +65,16 @@ func (cs *ComputerSet) List() ([]*Computer, error) {
 	nodeName := map[string]string{"master": "(master)", "Built-In Node": "(built-in)"}
 	for _, c := range csJson.Computers {
 		if name, ok := nodeName[c.DisplayName]; ok {
-			computers = append(computers, &Computer{Item: *NewItem(cs.jenkins.URL+name, c.Class, cs.jenkins)})
+			computers = append(computers, &Computer{Item: NewItem(cs.jenkins.URL+name, c.Class, cs.jenkins)})
 		} else {
-			computers = append(computers, &Computer{Item: *NewItem(cs.jenkins.URL+c.DisplayName, c.Class, cs.jenkins)})
+			computers = append(computers, &Computer{Item: NewItem(cs.jenkins.URL+c.DisplayName, c.Class, cs.jenkins)})
 		}
 	}
 	return computers, nil
 }
 
 type Computer struct {
-	Item
+	*Item
 }
 
 func (c *Computer) Enable() error {

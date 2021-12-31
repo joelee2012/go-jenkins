@@ -1,14 +1,14 @@
 package jenkins
 
 type QueueItem struct {
-	Item
+	*Item
 	ID    int
 	build *Build
 }
 
 func NewQueueItem(url string, jenkins *Jenkins) *QueueItem {
 	return &QueueItem{
-		Item:  *NewItem(url, "QueueItem", jenkins),
+		Item:  NewItem(url, "QueueItem", jenkins),
 		ID:    parseId(url),
 		build: nil,
 	}

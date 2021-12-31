@@ -136,5 +136,5 @@ func (j *Jenkins) ListJobs(depth int) ([]*Job, error) {
 }
 
 func (j *Jenkins) Credentials() *Credentials {
-	return &Credentials{Item: *NewItem(j.URL+"credentials/store/system/domain/_/", "Credentials", j)}
+	return &Credentials{Item: NewItem(j.URL+"credentials/store/system/domain/_/", "Credentials", j)}
 }

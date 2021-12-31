@@ -5,7 +5,7 @@ import (
 )
 
 type Build struct {
-	Item
+	*Item
 	ID int
 }
 
@@ -17,7 +17,7 @@ type BuildShortJson struct {
 }
 
 func NewBuild(url, class string, jenkins *Jenkins) *Build {
-	return &Build{Item: *NewItem(url, class, jenkins), ID: parseId(url)}
+	return &Build{Item: NewItem(url, class, jenkins), ID: parseId(url)}
 }
 
 func (b *Build) GetConsoleText() (string, error) {
