@@ -70,60 +70,6 @@ func TestGetVersion(t *testing.T) {
 	assert.Equal(t, os.Getenv("JENKINS_VERSION"), version)
 }
 
-func TestCreateJob(t *testing.T) {
-	assert.Nil(t, J.CreateJob("folder", FolderConfig))
-	assert.Nil(t, J.CreateJob("folder/pipeline", PipelineConfig))
-	defer J.DeleteJob("folder")
-	folder, err := J.GetJob("folder")
-	assert.Nil(t, err)
-	assert.IsType(t, &Job{}, folder)
-	folderParent, err := folder.GetParent()
-	assert.Nil(t, err)
-	assert.Nil(t, folderParent)
-	xml, err := folder.GetConfigure()
-	assert.Nil(t, err)
-	assert.NotEmpty(t, xml)
-
-	pipeline, _ := J.GetJob("folder/pipeline")
-	jobParent, err := pipeline.GetParent()
-	assert.Nil(t, err)
-	assert.IsType(t, &Job{}, jobParent)
-
-	assert.Equal(t, "pipeline", pipeline.GetName())
-	assert.Equal(t, "folder » pipeline", pipeline.GetFullDisplayName())
-	assert.Equal(t, "folder/pipeline", pipeline.GetFullName())
-}
-
-func TestListJob(t *testing.T) {
-	assert.Nil(t, J.CreateJob("folder", FolderConfig))
-	assert.Nil(t, J.CreateJob("folder/pipeline", PipelineConfig))
-	defer J.DeleteJob("folder")
-	jobs, err := J.ListJobs(0)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(jobs))
-	jobs, _ = J.ListJobs(1)
-	assert.Equal(t, 2, len(jobs))
-	pipeline, _ := J.GetJob("folder/pipeline")
-	jobs, err = pipeline.List(0)
-	assert.NotNil(t, err)
-	assert.Nil(t, jobs)
-}
-
-func TestGetParent(t *testing.T) {
-	J.CreateJob("folder", FolderConfig)
-	J.CreateJob("folder/pipeline", PipelineConfig)
-	defer J.DeleteJob("folder")
-	folder, _ := J.GetJob("folder")
-	folderParent, err := folder.GetParent()
-	assert.Nil(t, err)
-	assert.Nil(t, folderParent)
-
-	pipeline, _ := J.GetJob("folder/pipeline")
-	jobParent, err := pipeline.GetParent()
-	assert.Nil(t, err)
-	assert.IsType(t, &Job{}, jobParent)
-}
-
 func TestNameToUrl(t *testing.T) {
 	var tests = []struct {
 		given, expect string
@@ -159,7 +105,7 @@ func TestUrlToName(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestBuildJob(t *testing.T) {
+func TestFunctionsForBuildAble(t *testing.T) {
 	assert.Nil(t, J.CreateJob("go-test1", PipelineConfig))
 	defer J.DeleteJob("go-test1")
 	qitem, err := J.BuildJob("go-test1", ReqParams{})
@@ -173,52 +119,140 @@ func TestBuildJob(t *testing.T) {
 			break
 		}
 	}
-	// waiting build to finish
-	for {
-		building, err := build.IsBuilding()
-		assert.Nil(t, err)
-		if !building {
-			break
-		}
+
+	// test build.IterateProgressConsoleText
+	var output []string
+	err = build.IterateProgressConsoleText("text", func(line string) error {
+		output = append(output, line)
 		time.Sleep(1 * time.Second)
-	}
-	// get console output
-	text, err := build.GetConsoleText()
+		return nil
+	})
 	assert.Nil(t, err)
 	version, err := J.GetVersion()
 	assert.Nil(t, err)
-	assert.Contains(t, text, version)
-}
+	assert.Contains(t, output, version)
 
-func TestRename(t *testing.T) {
-	assert.Nil(t, J.CreateJob("go-test1", PipelineConfig))
-	defer J.DeleteJob("go-test2")
+	// test build.IsBuilding
+	building, err := build.IsBuilding()
+	assert.Nil(t, err)
+	assert.False(t, building)
+
+	// test build.GetResult
+	result, err := build.GetResult()
+	assert.Nil(t, err)
+	assert.Equal(t, result, "SUCCESS")
+
+	// test build.GetConsoleText
+	text, err := build.GetConsoleText()
+	assert.Nil(t, err)
+	assert.Contains(t, text, version)
+
 	job, err := J.GetJob("go-test1")
 	assert.Nil(t, err)
-	assert.Nil(t, job.Rename("go-test2"))
-	assert.Equal(t, "go-test2", job.GetName())
-}
 
-func TestBuildable(t *testing.T) {
-	assert.Nil(t, J.CreateJob("go-test2", PipelineConfig))
-	defer J.DeleteJob("go-test2")
-	job, err := J.GetJob("go-test2")
+	// test job.GetBuild
+	build1, err := job.GetBuild(1)
 	assert.Nil(t, err)
-	assert.IsType(t, &Job{}, job)
+	assert.Equal(t, build, build1)
+
+	// test job.GetLastBuild
+	build1, err = job.GetLastBuild()
+	assert.Nil(t, err)
+	assert.Equal(t, build, build1)
+
+	// test job.GetLastBuild
+	build1, err = job.GetFirstBuild()
+	assert.Nil(t, err)
+	assert.Equal(t, build, build1)
+
+	// test job.IsBuildable for project
 	buildable, err := job.IsBuildable()
 	assert.Nil(t, err)
 	assert.True(t, buildable)
-	// disable job
+
+	// disable job then check
 	assert.Nil(t, job.Disable())
 	buildable, err = job.IsBuildable()
 	assert.Nil(t, err)
 	assert.False(t, buildable)
-	// enable job
+
+	// enable job then check
 	assert.Nil(t, job.Enable())
 	buildable, err = job.IsBuildable()
 	assert.Nil(t, err)
 	assert.True(t, buildable)
+
 }
+
+func TestCommonFunctions(t *testing.T) {
+	assert.Nil(t, J.CreateJob("folder", FolderConfig))
+	assert.Nil(t, J.CreateJob("folder/pipeline", PipelineConfig))
+	defer J.DeleteJob("folder")
+
+	// test job type
+	folder, err := J.GetJob("folder")
+	assert.Nil(t, err)
+	assert.IsType(t, &Job{}, folder)
+	pipeline, err := J.GetJob("folder/pipeline")
+	assert.Nil(t, err)
+	assert.IsType(t, &Job{}, pipeline)
+
+	// test job.GetParent
+	// for job in folder
+	pParent, err := pipeline.GetParent()
+	assert.Nil(t, err)
+	assert.IsType(t, &Job{}, pParent)
+	assert.Equal(t, folder, pParent)
+
+	// for folder
+	fParent, err := folder.GetParent()
+	assert.Nil(t, err)
+	assert.Nil(t, fParent)
+	assert.Equal(t, fParent.URL, J.URL)
+
+	// test job.GetName
+	assert.Equal(t, "pipeline", pipeline.GetName())
+
+	// test job.GetFullDisplayName
+	assert.Equal(t, "folder » pipeline", pipeline.GetFullDisplayName())
+
+	// test job.GetFullName
+	assert.Equal(t, "folder/pipeline", pipeline.GetFullName())
+
+	// test job.GetConfigure
+	xml, err := folder.GetConfigure()
+	assert.Nil(t, err)
+	assert.NotEmpty(t, xml)
+
+	// test job.Rename
+	err = pipeline.Rename("pipeline1")
+	assert.Nil(t, err)
+	newPipeline, err := folder.Get("pipeline1")
+	assert.Nil(t, err)
+	assert.Equal(t, pipeline, newPipeline)
+	// old job 'pipeline' should not exist
+	old, err := folder.Get("pipeline")
+	assert.Nil(t, err)
+	assert.Nil(t, old)
+
+	// test jenkins.ListJobs
+	jobs, err := J.ListJobs(0)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(jobs))
+	jobs, _ = J.ListJobs(1)
+	assert.Equal(t, 2, len(jobs))
+
+	// test job.List for folder
+	jobs, err = folder.List(0)
+	assert.NotNil(t, err)
+	assert.Equal(t, 1, len(jobs))
+
+	// test job.List for job
+	jobs, err = pipeline.List(0)
+	assert.NotNil(t, err)
+	assert.Nil(t, jobs)
+}
+
 
 func TestCredentials(t *testing.T) {
 	J.CreateJob("folder", FolderConfig)

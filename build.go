@@ -34,6 +34,12 @@ func (b *Build) IsBuilding() (bool, error) {
 	return status.Building, err
 }
 
+func (b *Build) GetResult() (string, error) {
+	var status map[string]string
+	err := b.BindAPIJson(ReqParams{"tree": "result"}, &status)
+	return status["result"], err
+}
+
 func (b *Build) Delete() error {
 	return doDelete(b)
 }
