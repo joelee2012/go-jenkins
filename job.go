@@ -124,7 +124,7 @@ func (j *Job) Build(param ReqParams) (*QueueItem, error) {
 
 func (j *Job) GetBuild(number int) (*Build, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%T is a folder", j)
+		return nil, fmt.Errorf("%s is a folder", j)
 	}
 	var jobJson JobShortJson
 	if err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson); err != nil {
@@ -141,7 +141,7 @@ func (j *Job) GetBuild(number int) (*Build, error) {
 
 func (j *Job) Get(name string) (*Job, error) {
 	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%T is not a folder", j)
+		return nil, fmt.Errorf("%s is not a folder", j)
 	}
 	var folderJson JobShortJson
 	if err := j.BindAPIJson(ReqParams{"tree": "jobs[url,name]"}, &folderJson); err != nil {
@@ -163,12 +163,12 @@ func (j *Job) IsFolder() error {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil
 	}
-	return fmt.Errorf("%T is not a folder", j)
+	return fmt.Errorf("%s is not a folder", j)
 }
 
 func (j *Job) List(depth int) ([]*Job, error) {
 	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%T is not a folder", j)
+		return nil, fmt.Errorf("%s is not a folder", j)
 	}
 	query := "jobs[url]"
 	qf := "jobs[url,%s]"
@@ -224,7 +224,7 @@ func (j *Job) GetLastUnsucessfulBuild() (*Build, error) {
 
 func (j *Job) getBuildByName(name string) (*Build, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%T is a folder", j)
+		return nil, fmt.Errorf("%s is a folder", j)
 	}
 	var jobJson map[string]json.RawMessage
 	if err := j.BindAPIJson(ReqParams{"tree": name + "[url]"}, &jobJson); err != nil {
@@ -243,7 +243,7 @@ func (j *Job) Delete() error {
 
 func (j *Job) ListBuilds() ([]*Build, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%T is a folder", j)
+		return nil, fmt.Errorf("%s is a folder", j)
 	}
 	var jobJson JobShortJson
 	var builds []*Build

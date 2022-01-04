@@ -16,7 +16,7 @@ func (cs *ComputerSet) GetBuilds() ([]*Build, error) {
 	if err := cs.BindAPIJson(ReqParams{"tree": "computer[executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]]", "depth": "2"}, &csJson); err != nil {
 		return nil, err
 	}
-	var buildConf map[string]string
+	buildConf := map[string]string{}
 	parseBuild := func(executors []*Executor) {
 		for _, e := range executors {
 			if e.CurrentExecutable == nil {
