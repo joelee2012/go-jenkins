@@ -57,7 +57,7 @@ func (b *Build) GetJob() (*Job, error) {
 	return b.jenkins.GetJob(jobName)
 }
 
-func (b *Build) GetProgressConsoleText(kind string, f func(line string) error) error {
+func (b *Build) IterateProgressConsoleText(kind string, f func(line string) error) error {
 	var entry string
 	switch kind {
 	case "html":
