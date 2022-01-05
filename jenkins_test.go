@@ -190,7 +190,7 @@ func TestListJobs(t *testing.T) {
 	assert.Len(t, jobs, 1)
 	jobs, err = J.ListJobs(1)
 	assert.Nil(t, err)
-	assert.Equal(t, jobs, 4)
+	assert.Len(t, jobs, 4)
 }
 
 func TestSystemCredentials(t *testing.T) {
