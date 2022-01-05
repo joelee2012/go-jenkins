@@ -5,7 +5,7 @@ echo "$REPO_ROOT"
 function start {
   set -e
   local ip port password
-  sudo docker run -dt --rm --name jenkins-master joelee123/standalone-jenkins:latest
+  sudo docker run -dt --rm --name jenkins-master joelee2012/standalone-jenkins:latest
   echo 'Waiting for Jenkins to start...'
   until sudo docker logs jenkins-master | grep -q 'Jenkins is fully up and running'; do
     sleep 1
@@ -17,7 +17,7 @@ function start {
   cat <<EOF | tee "${REPO_ROOT}"/env.sh
 export JENKINS_URL='http://${ip}:${port}/'
 export JENKINS_USER="admin"
-export JENKINS_PSW='${password}'
+export JENKINS_PASSWORD='${password}'
 export JENKINS_VERSION='${version}'
 EOF
 }

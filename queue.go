@@ -1,17 +1,28 @@
 package jenkins
 
 type QueueItem struct {
-	Item
+	*Item
 	ID    int
 	build *Build
 }
 
 func NewQueueItem(url string, jenkins *Jenkins) *QueueItem {
 	return &QueueItem{
-		Item:  *NewItem(url, "QueueItem", jenkins),
+		Item:  NewItem(url, "QueueItem", jenkins),
 		ID:    parseId(url),
 		build: nil,
 	}
+}
+
+func (q *QueueItem) GetJob() (*Job, error) {
+	var queueJson QueueItemJson
+	if err := q.BindAPIJson(ReqParams{}, &queueJson); err != nil {
+		return nil, err
+	}
+	if parseClass(queueJson.Class) == "BuildableItem" {
+		return q.build.GetJob()
+	}
+	return NewJob(queueJson.Task.URL, queueJson.Task.Class, q.jenkins), nil
 }
 
 func (q *QueueItem) GetBuild() (*Build, error) {
@@ -33,7 +44,7 @@ func (q *QueueItem) GetBuild() (*Build, error) {
 }
 
 func (q *QueueItem) getWaitingBuild() (*Build, error) {
-	cs := q.jenkins.GetComputerSet()
+	cs := q.jenkins.ComputerSet()
 	builds, err := cs.GetBuilds()
 	if err != nil {
 		return nil, err
@@ -51,4 +62,37 @@ func (q *QueueItem) getWaitingBuild() (*Build, error) {
 		}
 	}
 	return nil, nil
+}
+
+type Queue struct {
+	Item
+}
+
+func (q *Queue) List() ([]*QueueItem, error) {
+	var qJson QueueJson
+	if err := q.BindAPIJson(ReqParams{}, &qJson); err != nil {
+		return nil, err
+	}
+	var items []*QueueItem
+	for _, item := range qJson.Items {
+		items = append(items, NewQueueItem(item.URL, q.jenkins))
+	}
+	return items, nil
+}
+
+func (q *Queue) Get(id int) (*QueueItem, error) {
+	var qJson QueueJson
+	if err := q.BindAPIJson(ReqParams{}, &qJson); err != nil {
+		return nil, err
+	}
+	for _, item := range qJson.Items {
+		if item.ID == id {
+			return NewQueueItem(item.URL, q.jenkins), nil
+		}
+	}
+	return nil, nil
+}
+
+func (q *Queue) Cancel(id int) error {
+	return doRequestAndDropResp(q, "POST", "cancelItem", ReqParams{"id": id})
 }

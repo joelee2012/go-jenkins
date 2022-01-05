@@ -27,6 +27,12 @@ func basicAuth(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
+// Create new Jenkins instance
+// J, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
+// if err != nil {
+// 	return err
+// }
+// fmt.Println(J)
 func NewJenkins(url, user, password string) (*Jenkins, error) {
 	url = appendSlash(url)
 	header := make(http.Header)
@@ -37,9 +43,6 @@ func NewJenkins(url, user, password string) (*Jenkins, error) {
 	// disable redirect for Job.Rename() and Move()
 	j.Req.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
-	}
-	if _, err := j.GetCrumb(); err != nil {
-		return nil, err
 	}
 	return &j, nil
 }
@@ -66,10 +69,6 @@ func (j *Jenkins) GetJob(fullName string) (*Job, error) {
 	folder, shortName := j.resolveJob(fullName)
 	return folder.Get(shortName)
 }
-
-// func (j *Jenkins) GetJobs(depth int) ([]Job, error) {
-// 	return NewJob(j.Url, "Folder", j).GetJobs(depth)
-// }
 
 func (j *Jenkins) CreateJob(fullName, xml string) error {
 	folder, shortName := j.resolveJob(fullName)
@@ -111,7 +110,7 @@ func (j *Jenkins) URLToName(url string) (string, error) {
 	return strings.Trim(strings.ReplaceAll(path, "/job/", "/"), "/"), nil
 }
 
-func (j *Jenkins) GetComputerSet() *ComputerSet {
+func (j *Jenkins) ComputerSet() *ComputerSet {
 	return NewComputerSet(j.URL+"computer/", j)
 }
 
@@ -137,8 +136,5 @@ func (j *Jenkins) ListJobs(depth int) ([]*Job, error) {
 }
 
 func (j *Jenkins) Credentials() *Credentials {
-	return &Credentials{Item: *NewItem(j.URL+"credentials/store/system/domain/_/", "Credentials", j)}
+	return &Credentials{Item: NewItem(j.URL+"credentials/store/system/domain/_/", "Credentials", j)}
 }
-
-// func (j *Jenkins) ListCredentials(depth int) ([]*Job, error) {
-// }

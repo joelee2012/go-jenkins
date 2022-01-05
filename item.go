@@ -24,6 +24,7 @@ func NewItem(url, class string, jenkins *Jenkins) *Item {
 	url = appendSlash(url)
 	return &Item{URL: url, Class: parseClass(class), jenkins: jenkins}
 }
+
 func (i *Item) BindAPIJson(param ReqParams, v interface{}) error {
 	return doBindAPIJson(i, param, v)
 }
@@ -34,10 +35,6 @@ func (i *Item) Request(method, entry string, vs ...interface{}) (*req.Resp, erro
 
 func (i *Item) String() string {
 	return fmt.Sprintf("<%s: %s>", i.Class, i.URL)
-}
-
-func (i *Item) GetClass() string {
-	return i.Class
 }
 
 var delimeter = regexp.MustCompile(`\w+$`)

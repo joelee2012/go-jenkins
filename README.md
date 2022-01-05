@@ -21,7 +21,6 @@ import (
 
 func main() {
 	j, err := jenkins.NewJenkins("http://localhost:8080/", "admin", "1234")
-	log.Println(j)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -44,12 +43,12 @@ func main() {
 	  <disabled>false</disabled>
 	</flow-definition>`
   // create jenkins job
-	if err := j.CreateJob("workflowjob1", xml); err != nil {
+	if err := j.CreateJob("pipeline", xml); err != nil {
 		log.Fatalln(err)
 	}
-	qitem, err := J.BuildJob("workflowjob1", jenkins.ReqParams{})
+	qitem, err := J.BuildJob("pipeline", jenkins.ReqParams{})
 	if err != nil {
-		t.Errorf("expect build job successful, but got error:\n %v", err)
+		log.Fatalln(err)
 	}
 	var build *Build
 	for {
@@ -65,14 +64,14 @@ func main() {
 	// waiting build to finish
 
 	for {
+		time.Sleep(1 * time.Second)
 		building, err := build.IsBuilding()
 		if err != nil {
-			t.Error(err)
+			log.Fatalln(err)
 		}
 		if !building {
 			break
 		}
-		time.Sleep(1 * time.Second)
 	}
 	// get console output
 	text, err := build.GetConsoleText()
