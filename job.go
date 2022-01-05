@@ -23,20 +23,21 @@ func (j *Job) Rename(name string) error {
 		return err
 	}
 	url, _ := resp.Response().Location()
-	j.URL = url.String()
+	j.URL = appendSlash(url.String())
 	return nil
 }
 
 func (j *Job) Move(path string) error {
-	parms := fmt.Sprintf(`{"destination": "/%s", "json": {"destination": "/%s"}}`, path, path)
-	resp, err := j.Request("POST", "move/move", req.BodyJSON(parms))
+	path = strings.Trim(path, "/")
+	resp, err := j.Request("POST", "move/move", ReqParams{"destination": "/" + path})
 	if err != nil {
 		return err
 	}
 	url, _ := resp.Response().Location()
-	j.URL = url.String()
+	j.URL = appendSlash(url.String())
 	return nil
 }
+
 func (j *Job) Copy(src, dest string) error {
 	return doRequestAndDropResp(j, "POST", "createItem", ReqParams{"name": dest, "mode": "copy", "from": src})
 }
@@ -140,9 +141,6 @@ func (j *Job) GetBuild(number int) (*Build, error) {
 }
 
 func (j *Job) Get(name string) (*Job, error) {
-	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s is not a folder", j)
-	}
 	var folderJson JobShortJson
 	if err := j.BindAPIJson(ReqParams{"tree": "jobs[url,name]"}, &folderJson); err != nil {
 		return nil, err
@@ -152,18 +150,11 @@ func (j *Job) Get(name string) (*Job, error) {
 			return NewJob(job.URL, job.Class, j.jenkins), nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("%s does not contain job: %s", j, name)
 }
 
 func (j *Job) Create(name, xml string) error {
 	return doRequestAndDropResp(j, "POST", "createItem", ReqParams{"name": name}, req.BodyXML(xml))
-}
-
-func (j *Job) IsFolder() error {
-	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil
-	}
-	return fmt.Errorf("%s is not a folder", j)
 }
 
 func (j *Job) List(depth int) ([]*Job, error) {
@@ -247,7 +238,7 @@ func (j *Job) ListBuilds() ([]*Build, error) {
 	}
 	var jobJson JobShortJson
 	var builds []*Build
-	if err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson); err != nil {
+	if err := j.BindAPIJson(ReqParams{"tree": "builds[url]"}, &jobJson); err != nil {
 		return nil, err
 	}
 

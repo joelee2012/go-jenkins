@@ -40,12 +40,12 @@ func doSetConfigure(r Requester, xml string) error {
 }
 
 func doSetDescription(r Requester, description string) error {
-	return doRequestAndDropResp(r, "POST", "submitDescription", description)
+	return doRequestAndDropResp(r, "POST", "submitDescription", ReqParams{"description": description})
 }
 
 func doGetDescription(r Requester) (string, error) {
 	data := make(map[string]string)
-	if err := doBindAPIJson(r, ReqParams{"tree": "description"}, data); err != nil {
+	if err := doBindAPIJson(r, ReqParams{"tree": "description"}, &data); err != nil {
 		return "", err
 	}
 	return data["description"], nil

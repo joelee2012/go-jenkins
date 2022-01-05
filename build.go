@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"bufio"
 	"regexp"
 )
 
@@ -20,12 +21,23 @@ func NewBuild(url, class string, jenkins *Jenkins) *Build {
 	return &Build{Item: NewItem(url, class, jenkins), ID: parseId(url)}
 }
 
-func (b *Build) GetConsoleText() (string, error) {
+func (b *Build) LoopLog(f func(line string) error) error {
 	resp, err := b.Request("GET", "consoleText", ReqParams{})
 	if err != nil {
-		return "", err
+		return err
 	}
-	return resp.String(), nil
+	defer resp.Response().Body.Close()
+	scanner := bufio.NewScanner(resp.Response().Body)
+	for scanner.Scan() {
+		if err := f(scanner.Text()); err != nil {
+			return err
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (b *Build) IsBuilding() (bool, error) {
@@ -63,7 +75,7 @@ func (b *Build) GetJob() (*Job, error) {
 	return b.jenkins.GetJob(jobName)
 }
 
-func (b *Build) IterateProgressConsoleText(kind string, f func(line string) error) error {
+func (b *Build) LoopProgressiveLog(kind string, f func(line string) error) error {
 	var entry string
 	switch kind {
 	case "html":
@@ -85,7 +97,7 @@ func (b *Build) IterateProgressConsoleText(kind string, f func(line string) erro
 		if err := f(resp.String()); err != nil {
 			return err
 		}
-		if resp.Response().Header.Get("X-More-Data") != "True" {
+		if resp.Response().Header.Get("X-More-Data") != "true" {
 			break
 		}
 		start = resp.Response().Header.Get("X-Text-Size")
