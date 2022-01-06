@@ -19,7 +19,28 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
       - name: Start Jenkins
-        run: bash ./start_jenkins.sh start
+        id: start-jenkins
+        shell: bash
+        run: |
+          set -e
+          sudo docker run -dt --rm --name jenkins-master joelee2012/standalone-jenkins:latest
+          echo 'Waiting for Jenkins to start...'
+          until sudo docker logs jenkins-master | grep -q 'Jenkins is fully up and running'; do
+            sleep 1
+          done
+          ip=$(sudo docker inspect --format='{{.NetworkSettings.IPAddress}}' jenkins-master)
+          password=$(sudo docker exec jenkins-master cat /var/jenkins_home/secrets/initialAdminPassword)
+          version=$(sudo docker exec jenkins-master sh -c 'echo "$JENKINS_VERSION"')
+          port=8080
+          echo "::set-output name=url::http://${ip}:${port}/"
+          echo "::set-output name=user::admin"
+          echo "::set-output name=password::${password}"
+          echo "::set-output name=version::${version}"
       - name: Test
+        env:
+          JENKINS_URL: ${{ steps.start-jenkins.outputs.url  }}
+          JENKINS_USER: ${{ steps.start-jenkins.outputs.user  }}
+          JENKINS_PASSWORD: ${{ steps.start-jenkins.outputs.password  }}
+          JENKINS_VERSION: ${{ steps.start-jenkins.outputs.version  }}
         run: make test
       - uses: codecov/codecov-action@v1

@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -10,10 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var J *Jenkins
-var PipelineConfig string
-var FolderConfig string
-var CredentialConfig string
+var jenkins *Jenkins
+var jobConf string
+var folderConf string
+var credConf string
 var folder, pipeline *Job
 
 func ReadFile(name string) string {
@@ -27,32 +28,32 @@ func ReadFile(name string) string {
 func SetUp() error {
 	log.Println("execute setup function")
 	var err error
-	J, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
+	jenkins, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
 	if err != nil {
 		return err
 	}
 
-	PipelineConfig = strings.ReplaceAll(ReadFile("tests_data/pipeline.xml"), "JENKINS_VERSION", os.Getenv("JENKINS_VERSION"))
+	jobConf = strings.ReplaceAll(ReadFile("tests_data/pipeline.xml"), "JENKINS_VERSION", os.Getenv("JENKINS_VERSION"))
 
-	FolderConfig = ReadFile("tests_data/folder.xml")
+	folderConf = ReadFile("tests_data/folder.xml")
 
-	CredentialConfig = ReadFile("tests_data/credential.xml")
-	confs := []string{FolderConfig, FolderConfig, PipelineConfig, PipelineConfig}
+	credConf = ReadFile("tests_data/credential.xml")
+	confs := []string{folderConf, folderConf, jobConf, jobConf}
 	names := []string{"folder", "folder/folder1", "folder/pipeline", "folder/pipeline2"}
 
 	for index, name := range names {
 		log.Printf("create %s", name)
-		if err = J.CreateJob(name, confs[index]); err != nil {
+		if err = jenkins.CreateJob(name, confs[index]); err != nil {
 			return err
 		}
 	}
 
-	folder, err = J.GetJob("folder")
+	folder, err = jenkins.GetJob("folder")
 	if err != nil {
 		return err
 	}
 
-	pipeline, err = J.GetJob("folder/pipeline")
+	pipeline, err = jenkins.GetJob("folder/pipeline")
 	if err != nil {
 		return err
 	}
@@ -60,18 +61,22 @@ func SetUp() error {
 }
 
 func TearsDown() {
-	J.DeleteJob("folder")
+	jenkins.DeleteJob("folder")
 }
 
 func TestNewJenkins(t *testing.T) {
+	assert.Equal(t, fmt.Sprint(jenkins), fmt.Sprintf("<Jenkins: %s>", jenkins.URL))
 	expect := "Jenkins-Crumb"
-	crumb, err := J.GetCrumb()
+	crumb, err := jenkins.GetCrumb()
 	assert.Nil(t, err)
 	assert.Equal(t, crumb.RequestFields, expect)
+	crumb1, err := jenkins.GetCrumb()
+	assert.Nil(t, err)
+	assert.Equal(t, crumb, crumb1)
 }
 
 func TestGetVersion(t *testing.T) {
-	version, err := J.GetVersion()
+	version, err := jenkins.GetVersion()
 	assert.Nil(t, err)
 	assert.Equal(t, os.Getenv("JENKINS_VERSION"), version)
 }
@@ -91,7 +96,7 @@ func TestNameToUrl(t *testing.T) {
 		{"job/job", "job/job/job/job/"},
 	}
 	for _, test := range tests {
-		assert.Equal(t, J.URL+test.expect, J.NameToURL(test.given))
+		assert.Equal(t, jenkins.URL+test.expect, jenkins.NameToURL(test.given))
 	}
 }
 
@@ -104,15 +109,15 @@ func TestUrlToName(t *testing.T) {
 		{"job/job", "job/job/job/job"},
 	}
 	for _, test := range tests {
-		name, _ := J.URLToName(J.URL + test.given)
+		name, _ := jenkins.URLToName(jenkins.URL + test.given)
 		assert.Equal(t, test.expect, name)
 	}
-	_, err := J.URLToName("http://0.0.0.1/job/folder1/")
+	_, err := jenkins.URLToName("http://0.0.0.1/job/folder1/")
 	assert.NotNil(t, err)
 }
 
 func TestBuildJob(t *testing.T) {
-	qitem, err := J.BuildJob("folder/pipeline", ReqParams{})
+	qitem, err := jenkins.BuildJob("folder/pipeline", ReqParams{})
 	assert.Nil(t, err)
 	var build *Build
 	for {
@@ -171,34 +176,34 @@ func TestBuildJob(t *testing.T) {
 }
 
 func TestGetJob(t *testing.T) {
-	job, err := J.GetJob("folder/pipeline2")
+	job, err := jenkins.GetJob("folder/pipeline2")
 	assert.Nil(t, err)
 	assert.Equal(t, job.Class, "WorkflowJob")
 
-	job, err = J.GetJob("folder/notexist")
+	job, err = jenkins.GetJob("folder/notexist")
 	assert.Nil(t, job)
 	assert.Contains(t, err.Error(), "not contain job")
 	// wrong path
-	job, err = J.GetJob("folder/pipeline2/notexist")
+	job, err = jenkins.GetJob("folder/pipeline2/notexist")
 	assert.Contains(t, err.Error(), "not contain job")
 	assert.Nil(t, job)
 }
 
 func TestListJobs(t *testing.T) {
-	jobs, err := J.ListJobs(0)
+	jobs, err := jenkins.ListJobs(0)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 1)
-	jobs, err = J.ListJobs(1)
+	jobs, err = jenkins.ListJobs(1)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 4)
 }
 
 func TestSystemCredentials(t *testing.T) {
-	credsManager := J.Credentials()
+	credsManager := jenkins.Credentials()
 	creds, err := credsManager.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
-	assert.Nil(t, credsManager.Create(CredentialConfig))
+	assert.Nil(t, credsManager.Create(credConf))
 	creds, err = credsManager.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 1)
