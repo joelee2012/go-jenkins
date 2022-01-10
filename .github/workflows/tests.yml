@@ -18,6 +18,7 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+
       - name: Start Jenkins
         id: start-jenkins
         shell: bash
@@ -36,11 +37,14 @@ jobs:
           echo "::set-output name=user::admin"
           echo "::set-output name=password::${password}"
           echo "::set-output name=version::${version}"
-      - name: Test
+
+      - name: Run go test
         env:
           JENKINS_URL: ${{ steps.start-jenkins.outputs.url  }}
           JENKINS_USER: ${{ steps.start-jenkins.outputs.user  }}
           JENKINS_PASSWORD: ${{ steps.start-jenkins.outputs.password  }}
           JENKINS_VERSION: ${{ steps.start-jenkins.outputs.version  }}
         run: make test
-      - uses: codecov/codecov-action@v1
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1

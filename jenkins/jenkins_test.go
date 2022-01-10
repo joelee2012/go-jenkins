@@ -11,49 +11,60 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var jenkins *Jenkins
-var jobConf string
-var folderConf string
-var credConf string
-var folder, pipeline *Job
-
-func ReadFile(name string) string {
-	data, err := os.ReadFile(name)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(data)
-}
+var (
+	client   *Jenkins
+	folder   *Job
+	pipeline *Job
+	jobConf  = `<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job">
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+    <script>echo  &quot;JENKINS_VERSION&quot;</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <disabled>false</disabled>
+</flow-definition>`
+	folderConf = `<?xml version='1.0' encoding='UTF-8'?>
+<com.cloudbees.hudson.plugins.folder.Folder>
+  <actions/>
+  <description></description>
+  <properties/>
+  <folderViews/>
+  <healthMetrics/>
+</com.cloudbees.hudson.plugins.folder.Folder>`
+	credConf = `<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>
+<scope>GLOBAL</scope>
+<id>user-id</id>
+<username>user-name</username>
+<password>user-password</password>
+<description>user id for testing</description>
+</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>`
+)
 
 func SetUp() error {
 	log.Println("execute setup function")
 	var err error
-	jenkins, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
+	client, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
 	if err != nil {
 		return err
 	}
 
-	jobConf = strings.ReplaceAll(ReadFile("tests_data/pipeline.xml"), "JENKINS_VERSION", os.Getenv("JENKINS_VERSION"))
-
-	folderConf = ReadFile("tests_data/folder.xml")
-
-	credConf = ReadFile("tests_data/credential.xml")
+	jobConf = strings.ReplaceAll(jobConf, "JENKINS_VERSION", os.Getenv("JENKINS_VERSION"))
 	confs := []string{folderConf, folderConf, jobConf, jobConf}
 	names := []string{"folder", "folder/folder1", "folder/pipeline", "folder/pipeline2"}
 
 	for index, name := range names {
 		log.Printf("create %s", name)
-		if err = jenkins.CreateJob(name, confs[index]); err != nil {
+		if err = client.CreateJob(name, confs[index]); err != nil {
 			return err
 		}
 	}
 
-	folder, err = jenkins.GetJob("folder")
+	folder, err = client.GetJob("folder")
 	if err != nil {
 		return err
 	}
 
-	pipeline, err = jenkins.GetJob("folder/pipeline")
+	pipeline, err = client.GetJob("folder/pipeline")
 	if err != nil {
 		return err
 	}
@@ -61,22 +72,22 @@ func SetUp() error {
 }
 
 func TearsDown() {
-	jenkins.DeleteJob("folder")
+	client.DeleteJob("folder")
 }
 
 func TestNewJenkins(t *testing.T) {
-	assert.Equal(t, fmt.Sprint(jenkins), fmt.Sprintf("<Jenkins: %s>", jenkins.URL))
+	assert.Equal(t, fmt.Sprint(client), fmt.Sprintf("<Jenkins: %s>", client.URL))
 	expect := "Jenkins-Crumb"
-	crumb, err := jenkins.GetCrumb()
+	crumb, err := client.GetCrumb()
 	assert.Nil(t, err)
 	assert.Equal(t, crumb.RequestFields, expect)
-	crumb1, err := jenkins.GetCrumb()
+	crumb1, err := client.GetCrumb()
 	assert.Nil(t, err)
 	assert.Equal(t, crumb, crumb1)
 }
 
 func TestGetVersion(t *testing.T) {
-	version, err := jenkins.GetVersion()
+	version, err := client.GetVersion()
 	assert.Nil(t, err)
 	assert.Equal(t, os.Getenv("JENKINS_VERSION"), version)
 }
@@ -96,7 +107,7 @@ func TestNameToUrl(t *testing.T) {
 		{"job/job", "job/job/job/job/"},
 	}
 	for _, test := range tests {
-		assert.Equal(t, jenkins.URL+test.expect, jenkins.NameToURL(test.given))
+		assert.Equal(t, client.URL+test.expect, client.NameToURL(test.given))
 	}
 }
 
@@ -109,15 +120,15 @@ func TestUrlToName(t *testing.T) {
 		{"job/job", "job/job/job/job"},
 	}
 	for _, test := range tests {
-		name, _ := jenkins.URLToName(jenkins.URL + test.given)
+		name, _ := client.URLToName(client.URL + test.given)
 		assert.Equal(t, test.expect, name)
 	}
-	_, err := jenkins.URLToName("http://0.0.0.1/job/folder1/")
+	_, err := client.URLToName("http://0.0.0.1/job/folder1/")
 	assert.NotNil(t, err)
 }
 
 func TestBuildJob(t *testing.T) {
-	qitem, err := jenkins.BuildJob("folder/pipeline", ReqParams{})
+	qitem, err := client.BuildJob("folder/pipeline", ReqParams{})
 	assert.Nil(t, err)
 	var build *Build
 	for {
@@ -176,30 +187,30 @@ func TestBuildJob(t *testing.T) {
 }
 
 func TestGetJob(t *testing.T) {
-	job, err := jenkins.GetJob("folder/pipeline2")
+	job, err := client.GetJob("folder/pipeline2")
 	assert.Nil(t, err)
 	assert.Equal(t, job.Class, "WorkflowJob")
 
-	job, err = jenkins.GetJob("folder/notexist")
+	job, err = client.GetJob("folder/notexist")
 	assert.Nil(t, job)
 	assert.Contains(t, err.Error(), "not contain job")
 	// wrong path
-	job, err = jenkins.GetJob("folder/pipeline2/notexist")
+	job, err = client.GetJob("folder/pipeline2/notexist")
 	assert.Contains(t, err.Error(), "not contain job")
 	assert.Nil(t, job)
 }
 
 func TestListJobs(t *testing.T) {
-	jobs, err := jenkins.ListJobs(0)
+	jobs, err := client.ListJobs(0)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 1)
-	jobs, err = jenkins.ListJobs(1)
+	jobs, err = client.ListJobs(1)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 4)
 }
 
 func TestSystemCredentials(t *testing.T) {
-	credsManager := jenkins.Credentials()
+	credsManager := client.Credentials()
 	creds, err := credsManager.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)

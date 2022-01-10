@@ -7,13 +7,13 @@ build: ## build package
 
 test: ## run test
 	env | sort
-	go test -race -coverprofile=coverage.out -covermode=atomic -v
+	go test -race -coverprofile=coverage.out -covermode=atomic -v ./...
 	go tool cover -html=coverage.out -o cover.html
 
 fmt: ## format code
 	go fmt .
 
 lint: ## lint code
-	go get honnef.co/go/tools/cmd/staticcheck && staticcheck .
+	staticcheck ./...
 
 .PHONY: test build
