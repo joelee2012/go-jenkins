@@ -40,7 +40,7 @@ var (
 </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>`
 )
 
-func SetUp() error {
+func setup() error {
 	log.Println("execute setup function")
 	var err error
 	client, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
@@ -71,7 +71,7 @@ func SetUp() error {
 	return nil
 }
 
-func TearsDown() {
+func tearsdown() {
 	client.DeleteJob("folder")
 }
 
@@ -225,11 +225,11 @@ func TestSystemCredentials(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	if err := SetUp(); err != nil {
-		TearsDown()
+	if err := setup(); err != nil {
+		tearsdown()
 		log.Fatal(err)
 	}
 	exitCode := m.Run()
-	TearsDown()
+	tearsdown()
 	os.Exit(exitCode)
 }

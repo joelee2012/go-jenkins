@@ -138,3 +138,56 @@ func (j *Jenkins) ListJobs(depth int) ([]*Job, error) {
 func (j *Jenkins) Credentials() *Credentials {
 	return &Credentials{Item: NewItem(j.URL+"credentials/store/system/domain/_/", "Credentials", j)}
 }
+
+func (j *Jenkins) Request(method, entry string, vs ...interface{}) (*req.Resp, error) {
+	return doRequest(j, method, j.URL+entry, vs...)
+}
+
+func (j *Jenkins) Restart() error {
+	return doRequestAndDropResp(j, "POST", j.URL+"restart")
+}
+
+func (j *Jenkins) SafeRestart() error {
+	return doRequestAndDropResp(j, "POST", j.URL+"safeRestart")
+}
+
+func (j *Jenkins) Exit() error {
+	return doRequestAndDropResp(j, "POST", j.URL+"exit")
+}
+
+func (j *Jenkins) SafeExit() error {
+	return doRequestAndDropResp(j, "POST", j.URL+"safeExit")
+}
+
+func (j *Jenkins) QuiteDown() error {
+	return doRequestAndDropResp(j, "POST", j.URL+"quietDown")
+}
+
+func (j *Jenkins) CancelQuiteDown() error {
+	return doRequestAndDropResp(j, "POST", j.URL+"cancelQuietDown")
+}
+
+func (j *Jenkins) ReloadJCasC() error {
+	return doRequestAndDropResp(j, "POST", j.URL+"configuration-as-code/reload")
+}
+
+func (j *Jenkins) ExportJCasC(name string) error {
+	resp, err := j.Request("POST", j.URL+"configuration-as-code/export")
+	if err != nil {
+		return err
+	}
+	return resp.ToFile(name)
+}
+
+func (j *Jenkins) ValidateJenkinsfile(content string) (string, error) {
+	data := map[string]string{"jenkinsfile": content}
+	resp, err := j.Request("POST", j.URL+"pipeline-model-converter/validate", data)
+	if err != nil {
+		return "", err
+	}
+	return resp.String(), nil
+}
+
+func (j *Jenkins) RunScript(script string) (string, error) {
+	return doRunScript(j, script)
+}

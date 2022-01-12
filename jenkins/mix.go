@@ -6,12 +6,12 @@ import (
 	"github.com/imroc/req"
 )
 
-func doRequest(j *Jenkins, method, url string, vs ...interface{}) (*req.Resp, error) {
+func doRequest(j *Jenkins, method, url string, v ...interface{}) (*req.Resp, error) {
 	if _, err := j.GetCrumb(); err != nil {
 		return nil, err
 	}
-	vs = append(vs, j.Header)
-	resp, err := j.Req.Do(method, url, vs...)
+	v = append(v, j.Header)
+	resp, err := j.Req.Do(method, url, v...)
 	if err != nil {
 		return nil, err
 	}
@@ -21,8 +21,8 @@ func doRequest(j *Jenkins, method, url string, vs ...interface{}) (*req.Resp, er
 	return resp, nil
 }
 
-func doRequestAndDropResp(r Requester, method, entry string, vs ...interface{}) error {
-	_, err := r.Request(method, entry, vs...)
+func doRequestAndDropResp(r Requester, method, entry string, v ...interface{}) error {
+	_, err := r.Request(method, entry, v...)
 	return err
 }
 
@@ -51,8 +51,8 @@ func doGetDescription(r Requester) (string, error) {
 	return data["description"], nil
 }
 
-func doBindAPIJson(r Requester, param ReqParams, v interface{}) error {
-	resp, err := r.Request("GET", "api/json", param)
+func doBindAPIJson(r Requester, params ReqParams, v interface{}) error {
+	resp, err := r.Request("GET", "api/json", params)
 	if err != nil {
 		return err
 	}
@@ -65,4 +65,13 @@ func doDisable(r Requester) error {
 
 func doEnable(r Requester) error {
 	return doRequestAndDropResp(r, "POST", "enable")
+}
+
+func doRunScript(r Requester, script string) (string, error) {
+	data := map[string]string{"script": script}
+	resp, err := r.Request("POST", "scriptText", data)
+	if err != nil {
+		return "", err
+	}
+	return resp.String(), nil
 }
