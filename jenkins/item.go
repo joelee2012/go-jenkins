@@ -25,8 +25,8 @@ func NewItem(url, class string, jenkins *Jenkins) *Item {
 	return &Item{URL: url, Class: parseClass(class), jenkins: jenkins}
 }
 
-func (i *Item) BindAPIJson(v ...interface{}) error {
-	return doBindAPIJson(i, v...)
+func (i *Item) BindAPIJson(params ReqParams, v interface{}) error {
+	return doBindAPIJson(i, params, v)
 }
 
 func (i *Item) Request(method, entry string, vs ...interface{}) (*req.Resp, error) {

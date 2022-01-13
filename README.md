@@ -16,7 +16,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/joelee2012/go-jenkins"
+	"github.com/joelee2012/go-jenkins/jenkins"
 )
 
 func main() {
@@ -62,23 +62,12 @@ func main() {
 		}
 	}
 	// waiting build to finish
-
-	for {
+	build.LoopProgressiveLog("text", func(line string) error {
+		log.Println(line)
 		time.Sleep(1 * time.Second)
-		building, err := build.IsBuilding()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		if !building {
-			break
-		}
-	}
-	// get console output
-	text, err := build.GetConsoleText()
-	if err != nil {
-		log.Fatalln(err)
-	}
+		return nil
+	})
 
-	log.Println(string(text))
+
 }
 ```
