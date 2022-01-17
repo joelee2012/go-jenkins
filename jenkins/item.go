@@ -13,16 +13,16 @@ import (
 )
 
 type Item struct {
-	URL     string
-	Class   string
-	jenkins *Jenkins
+	URL    string
+	Class  string
+	client *Client
 }
 
 type ReqParams = req.Param
 
-func NewItem(url, class string, jenkins *Jenkins) *Item {
+func NewItem(url, class string, client *Client) *Item {
 	url = appendSlash(url)
-	return &Item{URL: url, Class: parseClass(class), jenkins: jenkins}
+	return &Item{URL: url, Class: parseClass(class), client: client}
 }
 
 func (i *Item) BindAPIJson(params ReqParams, v interface{}) error {
@@ -30,7 +30,7 @@ func (i *Item) BindAPIJson(params ReqParams, v interface{}) error {
 }
 
 func (i *Item) Request(method, entry string, vs ...interface{}) (*req.Resp, error) {
-	return doRequest(i.jenkins, method, i.URL+entry, vs...)
+	return doRequest(i.client, method, i.URL+entry, vs...)
 }
 
 func (i *Item) String() string {

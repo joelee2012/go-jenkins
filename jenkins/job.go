@@ -13,8 +13,8 @@ type Job struct {
 	*Item
 }
 
-func NewJob(url, class string, jenkins *Jenkins) *Job {
-	return &Job{Item: NewItem(url, class, jenkins)}
+func NewJob(url, class string, client *Client) *Job {
+	return &Job{Item: NewItem(url, class, client)}
 }
 
 func (j *Job) Rename(name string) error {
@@ -43,12 +43,12 @@ func (j *Job) Copy(src, dest string) error {
 }
 
 func (j *Job) GetParent() (*Job, error) {
-	fullName, _ := j.jenkins.URLToName(j.URL)
+	fullName, _ := j.client.URLToName(j.URL)
 	dir, _ := path.Split(strings.Trim(fullName, "/"))
 	if dir == "" {
 		return nil, nil
 	}
-	return j.jenkins.GetJob(dir)
+	return j.client.GetJob(dir)
 }
 
 func (j *Job) GetConfigure() (string, error) {
@@ -82,12 +82,12 @@ func (j *Job) GetName() string {
 }
 
 func (j *Job) GetFullName() string {
-	fullname, _ := j.jenkins.URLToName(j.URL)
+	fullname, _ := j.client.URLToName(j.URL)
 	return fullname
 }
 
 func (j *Job) GetFullDisplayName() string {
-	fullname, _ := j.jenkins.URLToName(j.URL)
+	fullname, _ := j.client.URLToName(j.URL)
 	return strings.ReplaceAll(fullname, "/", " » ")
 }
 
@@ -120,7 +120,7 @@ func (j *Job) Build(param ReqParams) (*QueueItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewQueueItem(url.String(), j.jenkins), nil
+	return NewQueueItem(url.String(), j.client), nil
 }
 
 func (j *Job) GetBuild(number int) (*Build, error) {
@@ -134,7 +134,7 @@ func (j *Job) GetBuild(number int) (*Build, error) {
 
 	for _, build := range jobJson.Builds {
 		if number == build.Number {
-			return NewBuild(build.URL, parseClass(build.Class), j.jenkins), nil
+			return NewBuild(build.URL, parseClass(build.Class), j.client), nil
 		}
 	}
 	return nil, nil
@@ -147,7 +147,7 @@ func (j *Job) Get(name string) (*Job, error) {
 	}
 	for _, job := range folderJson.Jobs {
 		if job.Name == name {
-			return NewJob(job.URL, job.Class, j.jenkins), nil
+			return NewJob(job.URL, job.Class, j.client), nil
 		}
 	}
 	return nil, fmt.Errorf("%s does not contain job: %s", j, name)
@@ -177,7 +177,7 @@ func (j *Job) List(depth int) ([]*Job, error) {
 			if len(job.Jobs) > 0 {
 				_resolve(&job)
 			}
-			jobs = append(jobs, NewJob(job.URL, job.Class, j.jenkins))
+			jobs = append(jobs, NewJob(job.URL, job.Class, j.client))
 		}
 	}
 	_resolve(&folderJson)
@@ -185,7 +185,7 @@ func (j *Job) List(depth int) ([]*Job, error) {
 }
 
 func (j *Job) Credentials() *Credentials {
-	return &Credentials{Item: NewItem(j.URL+"credentials/store/folder/domain/_/", "Credentials", j.jenkins)}
+	return &Credentials{Item: NewItem(j.URL+"credentials/store/folder/domain/_/", "Credentials", j.client)}
 }
 
 func (j *Job) GetFirstBuild() (*Build, error) {
@@ -225,7 +225,7 @@ func (j *Job) getBuildByName(name string) (*Build, error) {
 	if err := json.Unmarshal(jobJson[name], &build); err != nil {
 		return nil, err
 	}
-	return NewBuild(build.URL, build.Class, j.jenkins), nil
+	return NewBuild(build.URL, build.Class, j.client), nil
 }
 
 func (j *Job) Delete() error {
@@ -243,7 +243,7 @@ func (j *Job) ListBuilds() ([]*Build, error) {
 	}
 
 	for _, build := range jobJson.Builds {
-		builds = append(builds, NewBuild(build.URL, parseClass(build.Class), j.jenkins))
+		builds = append(builds, NewBuild(build.URL, parseClass(build.Class), j.client))
 	}
 	return builds, nil
 }

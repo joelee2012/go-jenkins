@@ -6,12 +6,12 @@ import (
 	"github.com/imroc/req"
 )
 
-func doRequest(j *Jenkins, method, url string, v ...interface{}) (*req.Resp, error) {
-	if _, err := j.GetCrumb(); err != nil {
+func doRequest(client *Client, method, url string, v ...interface{}) (*req.Resp, error) {
+	if _, err := client.GetCrumb(); err != nil {
 		return nil, err
 	}
-	v = append(v, j.Header)
-	resp, err := j.Req.Do(method, url, v...)
+	v = append(v, client.Header)
+	resp, err := client.Req.Do(method, url, v...)
 	if err != nil {
 		return nil, err
 	}

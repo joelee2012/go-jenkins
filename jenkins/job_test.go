@@ -100,16 +100,16 @@ func TestListBuilds(t *testing.T) {
 }
 
 func TestFolderCredentials(t *testing.T) {
-	credsManager := folder.Credentials()
-	creds, err := credsManager.List()
+	cm := folder.Credentials()
+	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
-	assert.Nil(t, credsManager.Create(credConf))
-	creds, err = credsManager.List()
+	assert.Nil(t, cm.Create(credConf))
+	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 1)
-	assert.Nil(t, credsManager.Delete("user-id"))
-	creds, err = credsManager.List()
+	assert.Nil(t, cm.Delete("user-id"))
+	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
 }

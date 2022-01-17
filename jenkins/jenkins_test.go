@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	client   *Jenkins
+	client   *Client
 	folder   *Job
 	pipeline *Job
 	jobConf  = `<?xml version='1.1' encoding='UTF-8'?>
@@ -43,7 +43,7 @@ var (
 func setup() error {
 	log.Println("execute setup function")
 	var err error
-	client, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
+	client, err = NewClient(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
 	if err != nil {
 		return err
 	}
@@ -210,18 +210,47 @@ func TestListJobs(t *testing.T) {
 }
 
 func TestSystemCredentials(t *testing.T) {
-	credsManager := client.Credentials()
-	creds, err := credsManager.List()
+	cm := client.Credentials()
+	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
-	assert.Nil(t, credsManager.Create(credConf))
-	creds, err = credsManager.List()
+	assert.Nil(t, cm.Create(credConf))
+	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 1)
-	assert.Nil(t, credsManager.Delete("user-id"))
-	creds, err = credsManager.List()
+	assert.Nil(t, cm.Delete("user-id"))
+	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
+}
+
+func TestRunScript(t *testing.T) {
+	output, err := client.RunScript("println('hi, go-jenkins')")
+	assert.Nil(t, err)
+	assert.Equal(t, output, "hi, go-jenkins")
+}
+
+func TestValidateJenkinsfile(t *testing.T) {
+	output, err := client.ValidateJenkinsfile("")
+	assert.Nil(t, err)
+	assert.Equal(t, output, "No Jenkinsfile specified")
+}
+
+func TestQuiteDown(t *testing.T) {
+	var status struct {
+		Class        string `json:"_class"`
+		QuietingDown bool   `json:"quietingDown"`
+	}
+	assert.Nil(t, client.BindAPIJson(ReqParams{}, &status))
+	assert.False(t, status.QuietingDown)
+	// set quite down
+	assert.Nil(t, client.QuiteDown())
+	assert.Nil(t, client.BindAPIJson(ReqParams{}, &status))
+	assert.True(t, status.QuietingDown)
+	// cancel quite down
+	assert.Nil(t, client.CancelQuiteDown())
+	assert.Nil(t, client.BindAPIJson(ReqParams{}, &status))
+	assert.False(t, status.QuietingDown)
 }
 
 func TestMain(m *testing.M) {
