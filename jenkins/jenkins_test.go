@@ -225,15 +225,19 @@ func TestSystemCredentials(t *testing.T) {
 }
 
 func TestRunScript(t *testing.T) {
-	output, err := client.RunScript("println('hi, go-jenkins')")
+	output, err := client.RunScript(`println("hi, go-jenkins")`)
 	assert.Nil(t, err)
-	assert.Equal(t, output, "hi, go-jenkins")
+	assert.Equal(t, "hi, go-jenkins\n", output)
 }
 
 func TestValidateJenkinsfile(t *testing.T) {
 	output, err := client.ValidateJenkinsfile("")
 	assert.Nil(t, err)
-	assert.Equal(t, output, "No Jenkinsfile specified")
+	assert.Contains(t, output, "did not contain the 'pipeline' step")
+
+	output, err = client.ValidateJenkinsfile("pipeline { }")
+	assert.Nil(t, err)
+	assert.Contains(t, output, "Missing required section")
 }
 
 func TestQuiteDown(t *testing.T) {

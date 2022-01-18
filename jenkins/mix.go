@@ -68,8 +68,7 @@ func doEnable(r Requester) error {
 }
 
 func doRunScript(r Requester, script string) (string, error) {
-	data := map[string]string{"script": script}
-	resp, err := r.Request("POST", "scriptText", data)
+	resp, err := r.Request("POST", "scriptText", ReqParams{"script": script})
 	if err != nil {
 		return "", err
 	}

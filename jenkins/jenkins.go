@@ -144,35 +144,35 @@ func (c *Client) Request(method, entry string, v ...interface{}) (*req.Resp, err
 }
 
 func (c *Client) Restart() error {
-	return doRequestAndDropResp(c, "POST", c.URL+"restart")
+	return doRequestAndDropResp(c, "POST", "restart")
 }
 
 func (c *Client) SafeRestart() error {
-	return doRequestAndDropResp(c, "POST", c.URL+"safeRestart")
+	return doRequestAndDropResp(c, "POST", "safeRestart")
 }
 
 func (c *Client) Exit() error {
-	return doRequestAndDropResp(c, "POST", c.URL+"exit")
+	return doRequestAndDropResp(c, "POST", "exit")
 }
 
 func (c *Client) SafeExit() error {
-	return doRequestAndDropResp(c, "POST", c.URL+"safeExit")
+	return doRequestAndDropResp(c, "POST", "safeExit")
 }
 
 func (c *Client) QuiteDown() error {
-	return doRequestAndDropResp(c, "POST", c.URL+"quietDown")
+	return doRequestAndDropResp(c, "POST", "quietDown")
 }
 
 func (c *Client) CancelQuiteDown() error {
-	return doRequestAndDropResp(c, "POST", c.URL+"cancelQuietDown")
+	return doRequestAndDropResp(c, "POST", "cancelQuietDown")
 }
 
 func (c *Client) ReloadJCasC() error {
-	return doRequestAndDropResp(c, "POST", c.URL+"configuration-as-code/reload")
+	return doRequestAndDropResp(c, "POST", "configuration-as-code/reload")
 }
 
 func (c *Client) ExportJCasC(name string) error {
-	resp, err := c.Request("POST", c.URL+"configuration-as-code/export")
+	resp, err := c.Request("POST", "configuration-as-code/export")
 	if err != nil {
 		return err
 	}
@@ -184,8 +184,7 @@ func (c *Client) BindAPIJson(params ReqParams, v interface{}) error {
 }
 
 func (c *Client) ValidateJenkinsfile(content string) (string, error) {
-	data := map[string]string{"jenkinsfile": content}
-	resp, err := c.Request("POST", c.URL+"pipeline-model-converter/validate", data)
+	resp, err := c.Request("POST", "pipeline-model-converter/validate", ReqParams{"jenkinsfile": content})
 	if err != nil {
 		return "", err
 	}
