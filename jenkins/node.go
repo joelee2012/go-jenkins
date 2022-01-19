@@ -6,8 +6,8 @@ type ComputerSet struct {
 	*Item
 }
 
-func NewComputerSet(url string, jenkins *Jenkins) *ComputerSet {
-	return &ComputerSet{Item: NewItem(url, "ComputerSet", jenkins)}
+func NewComputerSet(url string, client *Client) *ComputerSet {
+	return &ComputerSet{Item: NewItem(url, "ComputerSet", client)}
 }
 
 func (cs *ComputerSet) GetBuilds() ([]*Build, error) {
@@ -33,7 +33,7 @@ func (cs *ComputerSet) GetBuilds() ([]*Build, error) {
 		parseBuild(c.OneOffExecutors)
 	}
 	for k, v := range buildConf {
-		builds = append(builds, NewBuild(k, v, cs.jenkins))
+		builds = append(builds, NewBuild(k, v, cs.client))
 	}
 	return builds, nil
 }
@@ -47,9 +47,9 @@ func (cs *ComputerSet) Get(name string) (*Computer, error) {
 	for _, c := range csJson.Computers {
 		if name == c.DisplayName {
 			if name, ok := nodeName[c.DisplayName]; ok {
-				return &Computer{Item: NewItem(cs.jenkins.URL+name, c.Class, cs.jenkins)}, nil
+				return &Computer{Item: NewItem(cs.client.URL+name, c.Class, cs.client)}, nil
 			} else {
-				return &Computer{Item: NewItem(cs.jenkins.URL+c.DisplayName, c.Class, cs.jenkins)}, nil
+				return &Computer{Item: NewItem(cs.client.URL+c.DisplayName, c.Class, cs.client)}, nil
 			}
 		}
 	}
@@ -65,9 +65,9 @@ func (cs *ComputerSet) List() ([]*Computer, error) {
 	nodeName := map[string]string{"master": "(master)", "Built-In Node": "(built-in)"}
 	for _, c := range csJson.Computers {
 		if name, ok := nodeName[c.DisplayName]; ok {
-			computers = append(computers, &Computer{Item: NewItem(cs.jenkins.URL+name, c.Class, cs.jenkins)})
+			computers = append(computers, &Computer{Item: NewItem(cs.client.URL+name, c.Class, cs.client)})
 		} else {
-			computers = append(computers, &Computer{Item: NewItem(cs.jenkins.URL+c.DisplayName, c.Class, cs.jenkins)})
+			computers = append(computers, &Computer{Item: NewItem(cs.client.URL+c.DisplayName, c.Class, cs.client)})
 		}
 	}
 	return computers, nil

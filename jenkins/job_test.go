@@ -100,16 +100,16 @@ func TestListBuilds(t *testing.T) {
 }
 
 func TestFolderCredentials(t *testing.T) {
-	credsManager := folder.Credentials()
-	creds, err := credsManager.List()
+	cm := folder.Credentials()
+	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
-	assert.Nil(t, credsManager.Create(CredentialConfig))
-	creds, err = credsManager.List()
+	assert.Nil(t, cm.Create(credConf))
+	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 1)
-	assert.Nil(t, credsManager.Delete("user-id"))
-	creds, err = credsManager.List()
+	assert.Nil(t, cm.Delete("user-id"))
+	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
 }
@@ -149,10 +149,10 @@ func TestGetBuildFunctions(t *testing.T) {
 
 func TestMove(t *testing.T) {
 	assert.Nil(t, pipeline.Move("/folder/folder1"))
-	job, err := J.GetJob("folder/pipeline")
+	job, err := client.GetJob("folder/pipeline")
 	assert.Contains(t, err.Error(), "not contain job")
 	assert.Nil(t, job)
-	job, err = J.GetJob("folder/folder1/pipeline")
+	job, err = client.GetJob("folder/folder1/pipeline")
 	assert.Nil(t, err)
 	assert.Contains(t, job.URL, "folder1/job/pipeline")
 
@@ -162,11 +162,11 @@ func TestMove(t *testing.T) {
 
 func TestCopy(t *testing.T) {
 	assert.Nil(t, folder.Copy("pipeline", "new_pipeline"))
-	job, err := J.GetJob("folder/new_pipeline")
+	job, err := client.GetJob("folder/new_pipeline")
 	assert.Nil(t, err)
 	assert.Equal(t, job.Class, pipeline.Class)
 	assert.Contains(t, job.URL, "new_pipeline")
 
 	// clean
-	J.DeleteJob("folder/new_pipeline")
+	client.DeleteJob("folder/new_pipeline")
 }

@@ -17,8 +17,8 @@ type BuildShortJson struct {
 	Building bool   `json:"building"`
 }
 
-func NewBuild(url, class string, jenkins *Jenkins) *Build {
-	return &Build{Item: NewItem(url, class, jenkins), ID: parseId(url)}
+func NewBuild(url, class string, client *Client) *Build {
+	return &Build{Item: NewItem(url, class, client), ID: parseId(url)}
 }
 
 func (b *Build) LoopLog(f func(line string) error) error {
@@ -71,8 +71,8 @@ func (b *Build) Term() error {
 var re = regexp.MustCompile(`\w+[/]?$`)
 
 func (b *Build) GetJob() (*Job, error) {
-	jobName, _ := b.jenkins.URLToName(re.ReplaceAllLiteralString(b.URL, ""))
-	return b.jenkins.GetJob(jobName)
+	jobName, _ := b.client.URLToName(re.ReplaceAllLiteralString(b.URL, ""))
+	return b.client.GetJob(jobName)
 }
 
 func (b *Build) LoopProgressiveLog(kind string, f func(line string) error) error {

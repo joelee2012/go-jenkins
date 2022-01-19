@@ -4,8 +4,8 @@
 ![GitHub](https://img.shields.io/github/license/joelee2012/go-jenkins)
 
 # go-jenkins
-[Jenkins](https://www.jenkins.io/) REST API client for [Golang](https://golang.org/), ported from [api4jenkins](https://github.com/joelee2012/api4jenkins>)
-
+[Golang](https://golang.org/) client library for [Jenkins API](https://wiki.jenkins.io/display/JENKINS/Remote+access+API).
+> Ported from [api4jenkins](https://github.com/joelee2012/api4jenkins>), a [Python3](https://www.python.org/) client library for [Jenkins API](https://wiki.jenkins.io/display/JENKINS/Remote+access+API).
 
 # Usage
 
@@ -16,11 +16,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/joelee2012/go-jenkins"
+	"github.com/joelee2012/go-jenkins/jenkins"
 )
 
 func main() {
-	j, err := jenkins.NewJenkins("http://localhost:8080/", "admin", "1234")
+	client, err := jenkins.NewClient("http://localhost:8080/", "admin", "1234")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -43,10 +43,10 @@ func main() {
 	  <disabled>false</disabled>
 	</flow-definition>`
   // create jenkins job
-	if err := j.CreateJob("pipeline", xml); err != nil {
+	if err := client.CreateJob("pipeline", xml); err != nil {
 		log.Fatalln(err)
 	}
-	qitem, err := J.BuildJob("pipeline", jenkins.ReqParams{})
+	qitem, err := client.BuildJob("pipeline", jenkins.ReqParams{})
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -61,24 +61,11 @@ func main() {
 			break
 		}
 	}
-	// waiting build to finish
-
-	for {
+	// tail the build log to end
+	build.LoopProgressiveLog("text", func(line string) error {
+		log.Println(line)
 		time.Sleep(1 * time.Second)
-		building, err := build.IsBuilding()
-		if err != nil {
-			log.Fatalln(err)
-		}
-		if !building {
-			break
-		}
-	}
-	// get console output
-	text, err := build.GetConsoleText()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	log.Println(string(text))
+		return nil
+	})
 }
 ```

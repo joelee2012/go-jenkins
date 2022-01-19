@@ -6,9 +6,9 @@ type QueueItem struct {
 	build *Build
 }
 
-func NewQueueItem(url string, jenkins *Jenkins) *QueueItem {
+func NewQueueItem(url string, client *Client) *QueueItem {
 	return &QueueItem{
-		Item:  NewItem(url, "QueueItem", jenkins),
+		Item:  NewItem(url, "QueueItem", client),
 		ID:    parseId(url),
 		build: nil,
 	}
@@ -22,7 +22,7 @@ func (q *QueueItem) GetJob() (*Job, error) {
 	if parseClass(queueJson.Class) == "BuildableItem" {
 		return q.build.GetJob()
 	}
-	return NewJob(queueJson.Task.URL, queueJson.Task.Class, q.jenkins), nil
+	return NewJob(queueJson.Task.URL, queueJson.Task.Class, q.client), nil
 }
 
 func (q *QueueItem) GetBuild() (*Build, error) {
@@ -36,7 +36,7 @@ func (q *QueueItem) GetBuild() (*Build, error) {
 	var err error
 	switch parseClass(queueJson.Class) {
 	case "LeftItem":
-		q.build = NewBuild(queueJson.Executable.URL, queueJson.Executable.Class, q.jenkins)
+		q.build = NewBuild(queueJson.Executable.URL, queueJson.Executable.Class, q.client)
 	case "BuildableItem", "WaitingItem":
 		q.build, err = q.getWaitingBuild()
 	}
@@ -44,7 +44,7 @@ func (q *QueueItem) GetBuild() (*Build, error) {
 }
 
 func (q *QueueItem) getWaitingBuild() (*Build, error) {
-	cs := q.jenkins.ComputerSet()
+	cs := q.client.ComputerSet()
 	builds, err := cs.GetBuilds()
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (q *Queue) List() ([]*QueueItem, error) {
 	}
 	var items []*QueueItem
 	for _, item := range qJson.Items {
-		items = append(items, NewQueueItem(item.URL, q.jenkins))
+		items = append(items, NewQueueItem(item.URL, q.client))
 	}
 	return items, nil
 }
@@ -87,7 +87,7 @@ func (q *Queue) Get(id int) (*QueueItem, error) {
 	}
 	for _, item := range qJson.Items {
 		if item.ID == id {
-			return NewQueueItem(item.URL, q.jenkins), nil
+			return NewQueueItem(item.URL, q.client), nil
 		}
 	}
 	return nil, nil
