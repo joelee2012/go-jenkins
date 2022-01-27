@@ -222,12 +222,12 @@ type Property struct {
 	ParameterDefinitions []ParameterDefinitions `json:"parameterDefinitions,omitempty"`
 }
 
-type ComputerSetJson struct {
-	Class          string         `json:"_class"`
-	BusyExecutors  int            `json:"busyExecutors"`
-	Computers      []ComputerJson `json:"computer"`
-	DisplayName    string         `json:"displayName"`
-	TotalExecutors int            `json:"totalExecutors"`
+type ComputerSet struct {
+	Class          string      `json:"_class"`
+	BusyExecutors  int         `json:"busyExecutors"`
+	Computers      []*Computer `json:"computer"`
+	DisplayName    string      `json:"displayName"`
+	TotalExecutors int         `json:"totalExecutors"`
 }
 
 type Nodes struct {
@@ -354,7 +354,7 @@ type OneOffExecutor struct {
 	Progress          int               `json:"progress"`
 }
 
-type ComputerJson struct {
+type Computer struct {
 	Class               string           `json:"_class"`
 	Actions             []Actions        `json:"actions"`
 	AssignedLabels      []AssignedLabels `json:"assignedLabels"`
@@ -410,23 +410,4 @@ type Executable struct {
 	Class  string `json:"_class"`
 	Number int    `json:"number"`
 	URL    string `json:"url"`
-}
-
-type CredentialsJson struct {
-	Class           string           `json:"_class"`
-	Credentials     []CredentialJson `json:"credentials"`
-	Description     string           `json:"description"`
-	DisplayName     string           `json:"displayName"`
-	FullDisplayName string           `json:"fullDisplayName"`
-	FullName        string           `json:"fullName"`
-	Global          bool             `json:"global"`
-	URLName         string           `json:"urlName"`
-}
-
-type CredentialJson struct {
-	Description string `json:"description"`
-	DisplayName string `json:"displayName"`
-	FullName    string `json:"fullName"`
-	ID          string `json:"id"`
-	TypeName    string `json:"typeName"`
 }

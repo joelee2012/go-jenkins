@@ -3,7 +3,7 @@ package jenkins
 type QueueItem struct {
 	*Item
 	ID    int
-	build *Build
+	build *BuildService
 }
 
 func NewQueueItem(url string, client *Client) *QueueItem {
@@ -14,7 +14,7 @@ func NewQueueItem(url string, client *Client) *QueueItem {
 	}
 }
 
-func (q *QueueItem) GetJob() (*Job, error) {
+func (q *QueueItem) GetJob() (*JobService, error) {
 	var queueJson QueueItemJson
 	if err := q.BindAPIJson(ReqParams{}, &queueJson); err != nil {
 		return nil, err
@@ -22,10 +22,10 @@ func (q *QueueItem) GetJob() (*Job, error) {
 	if parseClass(queueJson.Class) == "BuildableItem" {
 		return q.build.GetJob()
 	}
-	return NewJob(queueJson.Task.URL, queueJson.Task.Class, q.client), nil
+	return NewJobService(queueJson.Task.URL, queueJson.Task.Class, q.client), nil
 }
 
-func (q *QueueItem) GetBuild() (*Build, error) {
+func (q *QueueItem) GetBuild() (*BuildService, error) {
 	if q.build != nil {
 		return q.build, nil
 	}
@@ -43,9 +43,8 @@ func (q *QueueItem) GetBuild() (*Build, error) {
 	return q.build, err
 }
 
-func (q *QueueItem) getWaitingBuild() (*Build, error) {
-	cs := q.client.ComputerSet()
-	builds, err := cs.GetBuilds()
+func (q *QueueItem) getWaitingBuild() (*BuildService, error) {
+	builds, err := q.client.Nodes.GetBuilds()
 	if err != nil {
 		return nil, err
 	}
@@ -64,11 +63,15 @@ func (q *QueueItem) getWaitingBuild() (*Build, error) {
 	return nil, nil
 }
 
-type Queue struct {
+type QueueService struct {
 	Item
 }
 
-func (q *Queue) List() ([]*QueueItem, error) {
+func NewQueueService(c *Client) *QueueService {
+	return &QueueService{Item: *NewItem(c.URL+"queue/", "Queue", c)}
+}
+
+func (q *QueueService) List() ([]*QueueItem, error) {
 	var qJson QueueJson
 	if err := q.BindAPIJson(ReqParams{}, &qJson); err != nil {
 		return nil, err
@@ -80,7 +83,7 @@ func (q *Queue) List() ([]*QueueItem, error) {
 	return items, nil
 }
 
-func (q *Queue) Get(id int) (*QueueItem, error) {
+func (q *QueueService) Get(id int) (*QueueItem, error) {
 	var qJson QueueJson
 	if err := q.BindAPIJson(ReqParams{}, &qJson); err != nil {
 		return nil, err
@@ -93,6 +96,7 @@ func (q *Queue) Get(id int) (*QueueItem, error) {
 	return nil, nil
 }
 
-func (q *Queue) Cancel(id int) error {
-	return doRequestAndDropResp(q, "POST", "cancelItem", ReqParams{"id": id})
+func (q *QueueService) Cancel(id int) error {
+	_, err := q.Request("POST", "cancelItem", ReqParams{"id": id})
+	return err
 }

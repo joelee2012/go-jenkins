@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -26,15 +27,24 @@ func NewItem(url, class string, client *Client) *Item {
 }
 
 func (i *Item) BindAPIJson(params ReqParams, v interface{}) error {
-	return doBindAPIJson(i, params, v)
+	resp, err := i.Request("GET", "api/json", params)
+	if err != nil {
+		return err
+	}
+	return resp.ToJSON(v)
 }
 
 func (i *Item) Request(method, entry string, vs ...interface{}) (*req.Resp, error) {
-	return doRequest(i.client, method, i.URL+entry, vs...)
+	return i.client.Do(method, i.URL+entry, vs...)
 }
 
 func (i *Item) String() string {
 	return fmt.Sprintf("<%s: %s>", i.Class, i.URL)
+}
+
+func (i *Item) WithContext(ctx context.Context) *Item {
+	i.client.WithContext(ctx)
+	return i
 }
 
 var delimeter = regexp.MustCompile(`\w+$`)

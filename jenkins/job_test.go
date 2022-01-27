@@ -100,7 +100,7 @@ func TestListBuilds(t *testing.T) {
 }
 
 func TestFolderCredentials(t *testing.T) {
-	cm := folder.Credentials()
+	cm := folder.Credentials
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)

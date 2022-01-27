@@ -13,8 +13,8 @@ import (
 
 var (
 	client   *Client
-	folder   *Job
-	pipeline *Job
+	folder   *JobService
+	pipeline *JobService
 	jobConf  = `<?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
@@ -130,7 +130,7 @@ func TestUrlToName(t *testing.T) {
 func TestBuildJob(t *testing.T) {
 	qitem, err := client.BuildJob("folder/pipeline", ReqParams{})
 	assert.Nil(t, err)
-	var build *Build
+	var build *BuildService
 	for {
 		time.Sleep(1 * time.Second)
 		build, err = qitem.GetBuild()
@@ -210,7 +210,7 @@ func TestListJobs(t *testing.T) {
 }
 
 func TestSystemCredentials(t *testing.T) {
-	cm := client.Credentials()
+	cm := client.Credentials
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
