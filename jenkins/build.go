@@ -5,16 +5,16 @@ import (
 	"regexp"
 )
 
-type BuildService struct {
+type BuildItem struct {
 	*Item
 	ID int
 }
 
-func NewBuild(url, class string, client *Client) *BuildService {
-	return &BuildService{Item: NewItem(url, class, client), ID: parseId(url)}
+func NewBuildItem(url, class string, client *Client) *BuildItem {
+	return &BuildItem{Item: NewItem(url, class, client), ID: parseId(url)}
 }
 
-func (b *BuildService) LoopLog(f func(line string) error) error {
+func (b *BuildItem) LoopLog(f func(line string) error) error {
 	resp, err := b.Request("GET", "consoleText", ReqParams{})
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func (b *BuildService) LoopLog(f func(line string) error) error {
 	return nil
 }
 
-func (b *BuildService) IsBuilding() (bool, error) {
+func (b *BuildItem) IsBuilding() (bool, error) {
 	var build struct {
 		Class    string `json:"_class"`
 		Building bool   `json:"building"`
@@ -42,40 +42,40 @@ func (b *BuildService) IsBuilding() (bool, error) {
 	return build.Building, err
 }
 
-func (b *BuildService) GetResult() (string, error) {
+func (b *BuildItem) GetResult() (string, error) {
 	status := make(map[string]string)
 	err := b.BindAPIJson(ReqParams{"tree": "result"}, &status)
 	return status["result"], err
 }
 
-func (b *BuildService) Delete() error {
+func (b *BuildItem) Delete() error {
 	_, err := b.Request("POST", "doDelete")
 	return err
 }
 
-func (b *BuildService) Stop() error {
+func (b *BuildItem) Stop() error {
 	_, err := b.Request("POST", "stop")
 	return err
 }
 
-func (b *BuildService) Kill() error {
+func (b *BuildItem) Kill() error {
 	_, err := b.Request("POST", "kill")
 	return err
 }
 
-func (b *BuildService) Term() error {
+func (b *BuildItem) Term() error {
 	_, err := b.Request("POST", "term")
 	return err
 }
 
 var re = regexp.MustCompile(`\w+[/]?$`)
 
-func (b *BuildService) GetJob() (*JobService, error) {
+func (b *BuildItem) GetJob() (*JobItem, error) {
 	jobName, _ := b.client.URLToName(re.ReplaceAllLiteralString(b.URL, ""))
 	return b.client.GetJob(jobName)
 }
 
-func (b *BuildService) LoopProgressiveLog(kind string, f func(line string) error) error {
+func (b *BuildItem) LoopProgressiveLog(kind string, f func(line string) error) error {
 	var entry string
 	switch kind {
 	case "html":
@@ -105,7 +105,7 @@ func (b *BuildService) LoopProgressiveLog(kind string, f func(line string) error
 	return nil
 }
 
-func (b *BuildService) GetDescription() (string, error) {
+func (b *BuildItem) GetDescription() (string, error) {
 	data := make(map[string]string)
 	if err := b.BindAPIJson(ReqParams{"tree": "description"}, &data); err != nil {
 		return "", err
@@ -113,7 +113,7 @@ func (b *BuildService) GetDescription() (string, error) {
 	return data["description"], nil
 }
 
-func (b *BuildService) SetDescription(description string) error {
+func (b *BuildItem) SetDescription(description string) error {
 	_, err := b.Request("POST", "submitDescription", ReqParams{"description": description})
 	return err
 }

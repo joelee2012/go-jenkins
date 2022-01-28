@@ -1,33 +1,8 @@
 package jenkins
 
 import (
-	"fmt"
-
 	"github.com/imroc/req"
 )
-
-type Credentials struct {
-	Class           string        `json:"_class"`
-	Credentials     []*Credential `json:"credentials"`
-	Description     string        `json:"description"`
-	DisplayName     string        `json:"displayName"`
-	FullDisplayName string        `json:"fullDisplayName"`
-	FullName        string        `json:"fullName"`
-	Global          bool          `json:"global"`
-	URLName         string        `json:"urlName"`
-}
-
-type Credential struct {
-	Description string `json:"description"`
-	DisplayName string `json:"displayName"`
-	FullName    string `json:"fullName"`
-	ID          string `json:"id"`
-	TypeName    string `json:"typeName"`
-}
-
-func (c Credential) String() string {
-	return fmt.Sprintf("<%s: %s (%s)>", c.TypeName, c.FullName, c.Description)
-}
 
 type CredentialService struct {
 	*Item
@@ -38,7 +13,7 @@ func NewCredentialService(v interface{}) *CredentialService {
 		return &CredentialService{Item: NewItem(c.URL+"credentials/store/system/domain/_/", "Credentials", c)}
 	}
 
-	if c, ok := v.(*JobService); ok {
+	if c, ok := v.(*JobItem); ok {
 		return &CredentialService{Item: NewItem(c.URL+"credentials/store/folder/domain/_/", "Credentials", c.client)}
 	}
 	return nil

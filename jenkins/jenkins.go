@@ -82,7 +82,7 @@ func (c *Client) GetCrumb() (*Crumb, error) {
 	return c.Crumb, nil
 }
 
-func (c *Client) GetJob(fullName string) (*JobService, error) {
+func (c *Client) GetJob(fullName string) (*JobItem, error) {
 	folder, shortName := c.resolveJob(fullName)
 	return folder.Get(shortName)
 }
@@ -105,10 +105,10 @@ func (c *Client) String() string {
 	return fmt.Sprintf("<Jenkins: %s>", c.URL)
 }
 
-func (c *Client) resolveJob(fullName string) (*JobService, string) {
+func (c *Client) resolveJob(fullName string) (*JobItem, string) {
 	dir, name := path.Split(strings.Trim(fullName, "/"))
 	url := c.NameToURL(dir)
-	return NewJobService(url, "Folder", c), name
+	return NewJobItem(url, "Folder", c), name
 }
 
 func (c *Client) NameToURL(fullName string) string {
@@ -143,8 +143,8 @@ func (c *Client) BuildJob(fullName string, params ReqParams) (*QueueItem, error)
 	return job.Build(params)
 }
 
-func (c *Client) ListJobs(depth int) ([]*JobService, error) {
-	job := NewJobService(c.URL, "Folder", c)
+func (c *Client) ListJobs(depth int) ([]*JobItem, error) {
+	job := NewJobItem(c.URL, "Folder", c)
 	return job.List(depth)
 }
 

@@ -3,7 +3,7 @@ package jenkins
 type QueueItem struct {
 	*Item
 	ID    int
-	build *BuildService
+	build *BuildItem
 }
 
 func NewQueueItem(url string, client *Client) *QueueItem {
@@ -14,7 +14,7 @@ func NewQueueItem(url string, client *Client) *QueueItem {
 	}
 }
 
-func (q *QueueItem) GetJob() (*JobService, error) {
+func (q *QueueItem) GetJob() (*JobItem, error) {
 	var queueJson QueueItemJson
 	if err := q.BindAPIJson(ReqParams{}, &queueJson); err != nil {
 		return nil, err
@@ -22,10 +22,10 @@ func (q *QueueItem) GetJob() (*JobService, error) {
 	if parseClass(queueJson.Class) == "BuildableItem" {
 		return q.build.GetJob()
 	}
-	return NewJobService(queueJson.Task.URL, queueJson.Task.Class, q.client), nil
+	return NewJobItem(queueJson.Task.URL, queueJson.Task.Class, q.client), nil
 }
 
-func (q *QueueItem) GetBuild() (*BuildService, error) {
+func (q *QueueItem) GetBuild() (*BuildItem, error) {
 	if q.build != nil {
 		return q.build, nil
 	}
@@ -36,14 +36,14 @@ func (q *QueueItem) GetBuild() (*BuildService, error) {
 	var err error
 	switch parseClass(queueJson.Class) {
 	case "LeftItem":
-		q.build = NewBuild(queueJson.Executable.URL, queueJson.Executable.Class, q.client)
+		q.build = NewBuildItem(queueJson.Executable.URL, queueJson.Executable.Class, q.client)
 	case "BuildableItem", "WaitingItem":
 		q.build, err = q.getWaitingBuild()
 	}
 	return q.build, err
 }
 
-func (q *QueueItem) getWaitingBuild() (*BuildService, error) {
+func (q *QueueItem) getWaitingBuild() (*BuildItem, error) {
 	builds, err := q.client.Nodes.GetBuilds()
 	if err != nil {
 		return nil, err

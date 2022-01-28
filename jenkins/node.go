@@ -10,9 +10,9 @@ func NewNodeService(client *Client) *NodeService {
 	return &NodeService{Item: NewItem(client.URL+"computer/", "Nodes", client)}
 }
 
-func (ns *NodeService) GetBuilds() ([]*BuildService, error) {
+func (ns *NodeService) GetBuilds() ([]*BuildItem, error) {
 	var compSet ComputerSet
-	var builds []*BuildService
+	var builds []*BuildItem
 	tree := "computer[executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]]"
 	if err := ns.BindAPIJson(ReqParams{"tree": tree, "depth": "2"}, &compSet); err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (ns *NodeService) GetBuilds() ([]*BuildService, error) {
 		parseBuild(c.OneOffExecutors)
 	}
 	for k, v := range buildURLs {
-		builds = append(builds, NewBuild(k, v, ns.client))
+		builds = append(builds, NewBuildItem(k, v, ns.client))
 	}
 	return builds, nil
 }

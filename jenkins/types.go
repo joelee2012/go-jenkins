@@ -405,3 +405,26 @@ type Executable struct {
 	Number int    `json:"number"`
 	URL    string `json:"url"`
 }
+
+type Credentials struct {
+	Class           string        `json:"_class"`
+	Credentials     []*Credential `json:"credentials"`
+	Description     string        `json:"description"`
+	DisplayName     string        `json:"displayName"`
+	FullDisplayName string        `json:"fullDisplayName"`
+	FullName        string        `json:"fullName"`
+	Global          bool          `json:"global"`
+	URLName         string        `json:"urlName"`
+}
+
+type Credential struct {
+	Description string `json:"description"`
+	DisplayName string `json:"displayName"`
+	FullName    string `json:"fullName"`
+	ID          string `json:"id"`
+	TypeName    string `json:"typeName"`
+}
+
+func (c Credential) String() string {
+	return fmt.Sprintf("<%s: %s (%s)>", c.TypeName, c.FullName, c.Description)
+}
