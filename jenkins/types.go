@@ -1,5 +1,7 @@
 package jenkins
 
+import "fmt"
+
 type Job struct {
 	Class                 string         `json:"_class"`
 	Actions               []Actions      `json:"actions"`
@@ -363,6 +365,10 @@ type Computer struct {
 	OneOffExecutors     []*Executor      `json:"oneOffExecutors"`
 	TemporarilyOffline  bool             `json:"temporarilyOffline"`
 	AbsoluteRemotePath  interface{}      `json:"absoluteRemotePath,omitempty"`
+}
+
+func (c Computer) String() string {
+	return fmt.Sprintf("<%s: %s>", c.Class, c.DisplayName)
 }
 
 type QueueJson struct {

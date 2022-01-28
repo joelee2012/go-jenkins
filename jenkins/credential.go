@@ -65,7 +65,7 @@ func (cs *CredentialService) Create(xml string) error {
 }
 
 func (cs *CredentialService) Delete(name string) error {
-	_, err := cs.Request("POST", name+"/doDelete")
+	_, err := cs.Request("POST", "credential/"+name+"/doDelete")
 	return err
 }
 

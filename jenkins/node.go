@@ -2,22 +2,6 @@ package jenkins
 
 import "strings"
 
-type ComputerSetShortJson struct {
-	Class     string               `json:"_class"`
-	Computers []*ComputerShortJson `json:"computer"`
-}
-
-type ComputerShortJson struct {
-	Class              string      `json:"_class"`
-	Description        string      `json:"description"`
-	DisplayName        string      `json:"displayName"`
-	Executors          []*Executor `json:"executors"`
-	Offline            bool        `json:"offline"`
-	OfflineCause       interface{} `json:"offlineCause"`
-	OfflineCauseReason string      `json:"offlineCauseReason"`
-	OneOffExecutors    []*Executor `json:"oneOffExecutors"`
-}
-
 type NodeService struct {
 	*Item
 }
