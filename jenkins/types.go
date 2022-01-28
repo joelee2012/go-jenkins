@@ -1,74 +1,62 @@
 package jenkins
 
-// type FolderJson struct {
-// 	Class           string        `json:"_class"`
-// 	Actions         []Actions     `json:"actions"`
-// 	Description     string        `json:"description"`
-// 	DisplayName     string        `json:"displayName"`
-// 	FullDisplayName string        `json:"fullDisplayName"`
-// 	FullName        string        `json:"fullName"`
-// 	Name            string        `json:"name"`
-// 	URL             string        `json:"url"`
-// 	HealthReport    []interface{} `json:"healthReport"`
-// 	Jobs            []JobJson     `json:"jobs"`
-// 	PrimaryView     PrimaryView   `json:"primaryView"`
-// 	Views           []Views       `json:"views"`
-// }
+type Job struct {
+	Class                 string         `json:"_class"`
+	Actions               []Actions      `json:"actions"`
+	Description           string         `json:"description"`
+	DisplayName           string         `json:"displayName"`
+	DisplayNameOrNull     interface{}    `json:"displayNameOrNull"`
+	FullDisplayName       string         `json:"fullDisplayName"`
+	FullName              string         `json:"fullName"`
+	Name                  string         `json:"name"`
+	URL                   string         `json:"url"`
+	Buildable             bool           `json:"buildable"`
+	Builds                []*Build       `json:"builds"`
+	Color                 string         `json:"color"`
+	FirstBuild            *Build         `json:"firstBuild"`
+	HealthReport          []HealthReport `json:"healthReport"`
+	InQueue               bool           `json:"inQueue"`
+	KeepDependencies      bool           `json:"keepDependencies"`
+	LastBuild             *Build         `json:"lastBuild"`
+	LastCompletedBuild    *Build         `json:"lastCompletedBuild"`
+	LastFailedBuild       *Build         `json:"lastFailedBuild"`
+	LastStableBuild       *Build         `json:"lastStableBuild"`
+	LastSuccessfulBuild   *Build         `json:"lastSuccessfulBuild"`
+	LastUnstableBuild     *Build         `json:"lastUnstableBuild"`
+	LastUnsuccessfulBuild *Build         `json:"lastUnsuccessfulBuild"`
+	NextBuildNumber       int            `json:"nextBuildNumber"`
+	Property              []Property     `json:"property"`
+	QueueItem             interface{}    `json:"queueItem"`
+	ConcurrentBuild       bool           `json:"concurrentBuild"`
+	ResumeBlocked         bool           `json:"resumeBlocked"`
+	Jobs                  []*Job         `json:"jobs"`
+	PrimaryView           *PrimaryView   `json:"primaryView"`
+	Views                 []*Views       `json:"views"`
+}
 
-// type JobJson struct {
-// 	Class                 string         `json:"_class"`
-// 	Actions               []Actions      `json:"actions"`
-// 	Description           string         `json:"description"`
-// 	DisplayName           string         `json:"displayName"`
-// 	DisplayNameOrNull     interface{}    `json:"displayNameOrNull"`
-// 	FullDisplayName       string         `json:"fullDisplayName"`
-// 	FullName              string         `json:"fullName"`
-// 	Name                  string         `json:"name"`
-// 	URL                   string         `json:"url"`
-// 	Buildable             bool           `json:"buildable"`
-// 	Builds                []BuildJson    `json:"builds"`
-// 	Color                 string         `json:"color"`
-// 	FirstBuild            BuildJson      `json:"firstBuild"`
-// 	HealthReport          []HealthReport `json:"healthReport"`
-// 	InQueue               bool           `json:"inQueue"`
-// 	KeepDependencies      bool           `json:"keepDependencies"`
-// 	LastBuild             BuildJson      `json:"lastBuild"`
-// 	LastCompletedBuild    BuildJson      `json:"lastCompletedBuild"`
-// 	LastFailedBuild       BuildJson      `json:"lastFailedBuild"`
-// 	LastStableBuild       BuildJson      `json:"lastStableBuild"`
-// 	LastSuccessfulBuild   BuildJson      `json:"lastSuccessfulBuild"`
-// 	LastUnstableBuild     BuildJson      `json:"lastUnstableBuild"`
-// 	LastUnsuccessfulBuild BuildJson      `json:"lastUnsuccessfulBuild"`
-// 	NextBuildNumber       int            `json:"nextBuildNumber"`
-// 	Property              []Property     `json:"property"`
-// 	QueueItem             interface{}    `json:"queueItem"`
-// 	ConcurrentBuild       bool           `json:"concurrentBuild"`
-// 	ResumeBlocked         bool           `json:"resumeBlocked"`
-// }
-
-// type BuildJson struct {
-// 	Class             string       `json:"_class"`
-// 	Actions           []Actions    `json:"actions"`
-// 	Artifacts         []Artifacts  `json:"artifacts"`
-// 	Building          bool         `json:"building"`
-// 	Description       interface{}  `json:"description"`
-// 	DisplayName       string       `json:"displayName"`
-// 	Duration          int          `json:"duration"`
-// 	EstimatedDuration int          `json:"estimatedDuration"`
-// 	Executor          interface{}  `json:"executor"`
-// 	FullDisplayName   string       `json:"fullDisplayName"`
-// 	ID                string       `json:"id"`
-// 	KeepLog           bool         `json:"keepLog"`
-// 	Number            int          `json:"number"`
-// 	QueueID           int          `json:"queueId"`
-// 	Result            string       `json:"result"`
-// 	Timestamp         int64        `json:"timestamp"`
-// 	URL               string       `json:"url"`
-// 	ChangeSets        []ChangeSets `json:"changeSets"`
-// 	Culprits          []Culprits   `json:"culprits"`
-// 	// NextBuild         BuildJson    `json:"nextBuild"`
-// 	// PreviousBuild BuildJson `json:"previousBuild"`
-// }
+type Build struct {
+	Class             string       `json:"_class"`
+	Actions           []Actions    `json:"actions"`
+	Artifacts         []Artifacts  `json:"artifacts"`
+	Building          bool         `json:"building"`
+	Description       interface{}  `json:"description"`
+	DisplayName       string       `json:"displayName"`
+	Duration          int          `json:"duration"`
+	EstimatedDuration int          `json:"estimatedDuration"`
+	Executor          interface{}  `json:"executor"`
+	FullDisplayName   string       `json:"fullDisplayName"`
+	ID                string       `json:"id"`
+	KeepLog           bool         `json:"keepLog"`
+	Number            int          `json:"number"`
+	QueueID           int          `json:"queueId"`
+	Result            string       `json:"result"`
+	Timestamp         int64        `json:"timestamp"`
+	URL               string       `json:"url"`
+	ChangeSets        []ChangeSets `json:"changeSets"`
+	Culprits          []Culprits   `json:"culprits"`
+	NextBuild         *Build       `json:"nextBuild"`
+	PreviousBuild     *Build       `json:"previousBuild"`
+}
 type Parameters struct {
 	Class string `json:"_class"`
 	Name  string `json:"name"`

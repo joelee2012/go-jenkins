@@ -29,7 +29,8 @@ func NewNodeService(client *Client) *NodeService {
 func (ns *NodeService) GetBuilds() ([]*BuildService, error) {
 	var compSet ComputerSet
 	var builds []*BuildService
-	if err := ns.BindAPIJson(ReqParams{"tree": "computer[executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]]", "depth": "2"}, &compSet); err != nil {
+	tree := "computer[executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]]"
+	if err := ns.BindAPIJson(ReqParams{"tree": tree, "depth": "2"}, &compSet); err != nil {
 		return nil, err
 	}
 	buildURLs := map[string]string{}

@@ -1,6 +1,8 @@
 package jenkins
 
 import (
+	"fmt"
+
 	"github.com/imroc/req"
 )
 
@@ -21,6 +23,10 @@ type Credential struct {
 	FullName    string `json:"fullName"`
 	ID          string `json:"id"`
 	TypeName    string `json:"typeName"`
+}
+
+func (c Credential) String() string {
+	return fmt.Sprintf("<%s: %s (%s)>", c.TypeName, c.FullName, c.Description)
 }
 
 type CredentialService struct {

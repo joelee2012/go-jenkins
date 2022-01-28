@@ -3,28 +3,18 @@ package jenkins
 import (
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"path"
 	"strings"
 
 	"github.com/imroc/req"
 )
 
-var (
-	ErrItemNotFound          = errors.New("item not found")
-	ErrItemExists            = errors.New("item already exists")
-	ErrInvalidAuthentication = errors.New("invalid authentication")
-	ErrNoPermission          = errors.New("no permission")
-	ErrBadRequest            = errors.New("bad request")
-	ErrServerIssue           = errors.New("server error")
-)
+type JenkinsError struct {
+}
 
 type Client struct {
-	BaseURL     *url.URL
-	UserAgent   string
 	URL         string
 	Crumb       *Crumb
 	Header      http.Header
@@ -40,11 +30,6 @@ type Crumb struct {
 	Value         string `json:"crumb"`
 }
 
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
-}
-
 // Create new Client
 // client, err = NewClient(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
 // if err != nil {
@@ -53,19 +38,30 @@ func basicAuth(username, password string) string {
 // fmt.Println(client)
 func NewClient(url, user, password string) (*Client, error) {
 	url = appendSlash(url)
-	header := make(http.Header)
-	header.Set("Accept", "application/json")
-	header.Set("Authorization", "Basic "+basicAuth(user, password))
-
-	c := &Client{URL: url, Crumb: nil, Header: header, Req: req.New()}
+	c := &Client{URL: url, Header: make(http.Header), Req: req.New()}
 	// disable redirect for Job.Rename() and Move()
 	c.Req.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
+	c.SetBasicAuth(user, password)
+	c.SetContentType("")
 	c.Credentials = NewCredentialService(c)
 	c.Nodes = NewNodeService(c)
 	c.Queue = NewQueueService(c)
 	return c, nil
+}
+
+func (c *Client) SetContentType(ctype string) {
+	if ctype == "" {
+		c.Header.Set("Accept", "application/json")
+	} else {
+		c.Header.Set("Accept", ctype)
+	}
+}
+
+func (c *Client) SetBasicAuth(username, password string) {
+	auth := username + ":" + password
+	c.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
 }
 
 func (c *Client) GetCrumb() (*Crumb, error) {
@@ -166,20 +162,7 @@ func (c *Client) Do(method, url string, v ...interface{}) (*req.Resp, error) {
 		return nil, err
 	}
 	if resp.Response().StatusCode >= 400 {
-		switch resp.Response().StatusCode {
-		case 400:
-			return nil, ErrBadRequest
-		case 401:
-			return nil, ErrInvalidAuthentication
-		case 403:
-			return nil, ErrNoPermission
-		case 404:
-			return nil, ErrItemNotFound
-		case 500:
-			return nil, ErrServerIssue
-		default:
-			return nil, fmt.Errorf(resp.Dump())
-		}
+		return nil, fmt.Errorf("%s: %s", resp.Response().Status, url)
 	}
 	return resp, nil
 }

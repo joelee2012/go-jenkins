@@ -14,14 +14,6 @@ type JobService struct {
 	Credentials *CredentialService
 }
 
-type JobShortJson struct {
-	Class  string           `json:"_class"`
-	Builds []BuildShortJson `json:"builds"`
-	Name   string           `json:"name"`
-	URL    string           `json:"url"`
-	Jobs   []JobShortJson   `json:"jobs"`
-}
-
 func NewJobService(url, class string, client *Client) *JobService {
 	j := &JobService{Item: NewItem(url, class, client)}
 	j.Credentials = NewCredentialService(j)
@@ -84,12 +76,12 @@ func (j *JobService) Enable() error {
 }
 
 func (j *JobService) IsBuildable() (bool, error) {
-	var apiJson struct {
+	var job struct {
 		Class     string `json:"_class"`
 		Buildable bool   `json:"buildable"`
 	}
-	err := j.BindAPIJson(ReqParams{"tree": "buildable"}, &apiJson)
-	return apiJson.Buildable, err
+	err := j.BindAPIJson(ReqParams{"tree": "buildable"}, &job)
+	return job.Buildable, err
 }
 
 func (j *JobService) GetName() string {
@@ -148,7 +140,7 @@ func (j *JobService) GetBuild(number int) (*BuildService, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s is a folder", j)
 	}
-	var jobJson JobShortJson
+	jobJson := &Job{}
 	if err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson); err != nil {
 		return nil, err
 	}
@@ -162,7 +154,7 @@ func (j *JobService) GetBuild(number int) (*BuildService, error) {
 }
 
 func (j *JobService) Get(name string) (*JobService, error) {
-	var folderJson JobShortJson
+	var folderJson Job
 	if err := j.BindAPIJson(ReqParams{"tree": "jobs[url,name]"}, &folderJson); err != nil {
 		return nil, err
 	}
@@ -188,16 +180,16 @@ func (j *JobService) List(depth int) ([]*JobService, error) {
 	for i := 0; i < depth; i++ {
 		query = fmt.Sprintf(qf, query)
 	}
-	var folderJson JobShortJson
+	var folderJson Job
 	if err := j.BindAPIJson(ReqParams{"tree": query}, &folderJson); err != nil {
 		return nil, err
 	}
 	var jobs []*JobService
-	var _resolve func(item *JobShortJson)
-	_resolve = func(item *JobShortJson) {
+	var _resolve func(item *Job)
+	_resolve = func(item *Job) {
 		for _, job := range item.Jobs {
 			if len(job.Jobs) > 0 {
-				_resolve(&job)
+				_resolve(job)
 			}
 			jobs = append(jobs, NewJobService(job.URL, job.Class, j.client))
 		}
@@ -239,7 +231,7 @@ func (j *JobService) getBuildByName(name string) (*BuildService, error) {
 	if err := j.BindAPIJson(ReqParams{"tree": name + "[url]"}, &jobJson); err != nil {
 		return nil, err
 	}
-	var build BuildShortJson
+	var build Build
 	if err := json.Unmarshal(jobJson[name], &build); err != nil {
 		return nil, err
 	}
@@ -255,7 +247,7 @@ func (j *JobService) ListBuilds() ([]*BuildService, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s is a folder", j)
 	}
-	var jobJson JobShortJson
+	var jobJson Job
 	var builds []*BuildService
 	if err := j.BindAPIJson(ReqParams{"tree": "builds[url]"}, &jobJson); err != nil {
 		return nil, err

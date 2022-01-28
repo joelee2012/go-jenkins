@@ -10,13 +10,6 @@ type BuildService struct {
 	ID int
 }
 
-type BuildShortJson struct {
-	Class    string `json:"_class"`
-	Number   int    `json:"number"`
-	URL      string `json:"url"`
-	Building bool   `json:"building"`
-}
-
 func NewBuild(url, class string, client *Client) *BuildService {
 	return &BuildService{Item: NewItem(url, class, client), ID: parseId(url)}
 }
@@ -41,13 +34,16 @@ func (b *BuildService) LoopLog(f func(line string) error) error {
 }
 
 func (b *BuildService) IsBuilding() (bool, error) {
-	var status BuildShortJson
-	err := b.BindAPIJson(ReqParams{"tree": "building"}, &status)
-	return status.Building, err
+	var build struct {
+		Class    string `json:"_class"`
+		Building bool   `json:"building"`
+	}
+	err := b.BindAPIJson(ReqParams{"tree": "building"}, &build)
+	return build.Building, err
 }
 
 func (b *BuildService) GetResult() (string, error) {
-	var status map[string]string
+	status := make(map[string]string)
 	err := b.BindAPIJson(ReqParams{"tree": "result"}, &status)
 	return status["result"], err
 }
