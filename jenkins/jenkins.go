@@ -93,12 +93,7 @@ func (c *Client) CreateJob(fullName, xml string) error {
 }
 
 func (c *Client) DeleteJob(fullName string) error {
-	folder, shortName := c.resolveJob(fullName)
-	job, err := folder.Get(shortName)
-	if err != nil {
-		return err
-	}
-	return job.Delete()
+	return NewJobItem(c.Name2URL(fullName), "Job", c).Delete()
 }
 
 func (c *Client) String() string {
@@ -107,11 +102,11 @@ func (c *Client) String() string {
 
 func (c *Client) resolveJob(fullName string) (*JobItem, string) {
 	dir, name := path.Split(strings.Trim(fullName, "/"))
-	url := c.NameToURL(dir)
+	url := c.Name2URL(dir)
 	return NewJobItem(url, "Folder", c), name
 }
 
-func (c *Client) NameToURL(fullName string) string {
+func (c *Client) Name2URL(fullName string) string {
 	if fullName == "" {
 		return c.URL
 	}
@@ -119,7 +114,7 @@ func (c *Client) NameToURL(fullName string) string {
 	return appendSlash(c.URL + "job/" + path)
 }
 
-func (c *Client) URLToName(url string) (string, error) {
+func (c *Client) URL2Name(url string) (string, error) {
 	if !strings.HasPrefix(url, c.URL) {
 		return "", fmt.Errorf("%s is not in %s", url, c.URL)
 	}
@@ -136,11 +131,7 @@ func (c *Client) GetVersion() (string, error) {
 }
 
 func (c *Client) BuildJob(fullName string, params ReqParams) (*QueueItem, error) {
-	job, err := c.GetJob(fullName)
-	if err != nil {
-		return nil, err
-	}
-	return job.Build(params)
+	return NewJobItem(c.Name2URL(fullName), "Job", c).Build(params)
 }
 
 func (c *Client) ListJobs(depth int) ([]*JobItem, error) {

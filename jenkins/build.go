@@ -71,7 +71,7 @@ func (b *BuildItem) Term() error {
 var re = regexp.MustCompile(`\w+[/]?$`)
 
 func (b *BuildItem) GetJob() (*JobItem, error) {
-	jobName, _ := b.client.URLToName(re.ReplaceAllLiteralString(b.URL, ""))
+	jobName, _ := b.client.URL2Name(re.ReplaceAllLiteralString(b.URL, ""))
 	return b.client.GetJob(jobName)
 }
 

@@ -47,7 +47,7 @@ func (j *JobItem) Copy(src, dest string) error {
 }
 
 func (j *JobItem) GetParent() (*JobItem, error) {
-	fullName, _ := j.client.URLToName(j.URL)
+	fullName, _ := j.client.URL2Name(j.URL)
 	dir, _ := path.Split(strings.Trim(fullName, "/"))
 	if dir == "" {
 		return nil, nil
@@ -90,12 +90,12 @@ func (j *JobItem) GetName() string {
 }
 
 func (j *JobItem) GetFullName() string {
-	fullname, _ := j.client.URLToName(j.URL)
+	fullname, _ := j.client.URL2Name(j.URL)
 	return fullname
 }
 
 func (j *JobItem) GetFullDisplayName() string {
-	fullname, _ := j.client.URLToName(j.URL)
+	fullname, _ := j.client.URL2Name(j.URL)
 	return strings.ReplaceAll(fullname, "/", " » ")
 }
 

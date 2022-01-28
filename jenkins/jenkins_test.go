@@ -107,7 +107,7 @@ func TestNameToUrl(t *testing.T) {
 		{"job/job", "job/job/job/job/"},
 	}
 	for _, test := range tests {
-		assert.Equal(t, client.URL+test.expect, client.NameToURL(test.given))
+		assert.Equal(t, client.URL+test.expect, client.Name2URL(test.given))
 	}
 }
 
@@ -120,10 +120,10 @@ func TestUrlToName(t *testing.T) {
 		{"job/job", "job/job/job/job"},
 	}
 	for _, test := range tests {
-		name, _ := client.URLToName(client.URL + test.given)
+		name, _ := client.URL2Name(client.URL + test.given)
 		assert.Equal(t, test.expect, name)
 	}
-	_, err := client.URLToName("http://0.0.0.1/job/folder1/")
+	_, err := client.URL2Name("http://0.0.0.1/job/folder1/")
 	assert.NotNil(t, err)
 }
 
