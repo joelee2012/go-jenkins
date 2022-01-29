@@ -7,7 +7,7 @@ build: ## build package
 
 test: ## run test
 	env | sort
-	go test -race -coverprofile=coverage.out -covermode=atomic -v ./...
+	go test -race -coverprofile=coverage.out -covermode=atomic -v ./... | tee test.log
 	go tool cover -html=coverage.out -o cover.html
 
 fmt: ## format code

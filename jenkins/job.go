@@ -234,8 +234,11 @@ func (j *JobItem) getBuildByName(name string) (*BuildItem, error) {
 	if err := j.BindAPIJson(ReqParams{"tree": name + "[url]"}, &jobJson); err != nil {
 		return nil, err
 	}
-	var build Build
-	if err := json.Unmarshal(jobJson[name], &build); err != nil {
+	if string(jobJson[name]) == "null" {
+		return nil, nil
+	}
+	build := &Build{}
+	if err := json.Unmarshal(jobJson[name], build); err != nil {
 		return nil, err
 	}
 	return NewBuildItem(build.URL, build.Class, j.client), nil
