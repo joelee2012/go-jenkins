@@ -16,8 +16,8 @@ type JenkinsError struct {
 
 type Client struct {
 	URL         string
-	Crumb       *Crumb
 	Header      http.Header
+	Crumb       *Crumb
 	Req         *req.Req
 	ctx         *context.Context
 	Credentials *CredentialService

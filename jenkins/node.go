@@ -45,7 +45,7 @@ func (ns *NodeService) GetBuilds() ([]*BuildItem, error) {
 
 func (ns *NodeService) Get(name string) (*Computer, error) {
 	compSet := &ComputerSet{}
-	if err := ns.BindAPIJson(ReqParams{"tree": "computer[displayName]"}, compSet); err != nil {
+	if err := ns.BindAPIJson(ReqParams{}, compSet); err != nil {
 		return nil, err
 	}
 
@@ -59,7 +59,7 @@ func (ns *NodeService) Get(name string) (*Computer, error) {
 
 func (ns *NodeService) List() ([]*Computer, error) {
 	compSet := &ComputerSet{}
-	if err := ns.BindAPIJson(ReqParams{"tree": "computer[displayName]"}, compSet); err != nil {
+	if err := ns.BindAPIJson(ReqParams{}, compSet); err != nil {
 		return nil, err
 	}
 	return compSet.Computers, nil
