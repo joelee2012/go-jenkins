@@ -371,13 +371,13 @@ func (c Computer) String() string {
 	return fmt.Sprintf("<%s: %s>", c.Class, c.DisplayName)
 }
 
-type QueueJson struct {
-	Class             string          `json:"_class"`
-	DiscoverableItems []interface{}   `json:"discoverableItems"`
-	Items             []QueueItemJson `json:"items"`
+type Queue struct {
+	Class             string        `json:"_class"`
+	DiscoverableItems []interface{} `json:"discoverableItems"`
+	Items             []*QueueItem  `json:"items"`
 }
 
-type QueueItemJson struct {
+type QueueItem struct {
 	Class        string      `json:"_class"`
 	Actions      []Actions   `json:"actions"`
 	Blocked      bool        `json:"blocked"`

@@ -1,23 +1,27 @@
 package jenkins
 
-import "strings"
+import (
+	"strings"
+)
 
 type NodeService struct {
 	*Item
 }
+
+var nodeNameMap = map[string]string{"master": "(master)", "Built-In Node": "(built-in)"}
 
 func NewNodeService(client *Client) *NodeService {
 	return &NodeService{Item: NewItem(client.URL+"computer/", "Nodes", client)}
 }
 
 func (ns *NodeService) GetBuilds() ([]*BuildItem, error) {
-	var compSet ComputerSet
+	compSet := &ComputerSet{}
 	var builds []*BuildItem
 	tree := "computer[executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]]"
-	if err := ns.BindAPIJson(ReqParams{"tree": tree, "depth": "2"}, &compSet); err != nil {
+	if err := ns.BindAPIJson(ReqParams{"tree": tree, "depth": "2"}, compSet); err != nil {
 		return nil, err
 	}
-	buildURLs := map[string]string{}
+	buildConf := map[string]string{}
 	parseBuild := func(executors []*Executor) {
 		for _, e := range executors {
 			if e.CurrentExecutable == nil {
@@ -26,14 +30,14 @@ func (ns *NodeService) GetBuilds() ([]*BuildItem, error) {
 			if strings.HasSuffix(e.CurrentExecutable.Class, "PlaceholderExecutable") {
 				e.CurrentExecutable.Class = "org.jenkinsci.plugins.workflow.job.WorkflowRun"
 			}
-			buildURLs[e.CurrentExecutable.URL] = e.CurrentExecutable.Class
+			buildConf[e.CurrentExecutable.URL] = e.CurrentExecutable.Class
 		}
 	}
 	for _, c := range compSet.Computers {
 		parseBuild(c.Executors)
 		parseBuild(c.OneOffExecutors)
 	}
-	for k, v := range buildURLs {
+	for k, v := range buildConf {
 		builds = append(builds, NewBuildItem(k, v, ns.client))
 	}
 	return builds, nil
@@ -61,17 +65,24 @@ func (ns *NodeService) List() ([]*Computer, error) {
 	return compSet.Computers, nil
 }
 
+func (ns *NodeService) covertName(name string) string {
+	if displayName, ok := nodeNameMap[name]; ok {
+		return displayName
+	}
+	return name
+}
+
 func (ns *NodeService) Enable(name string) error {
-	_, err := ns.Request("POST", name+"/toggleOffline", ReqParams{"offlineMessage": ""})
+	_, err := ns.Request("POST", ns.covertName(name)+"/toggleOffline", ReqParams{"offlineMessage": ""})
 	return err
 }
 
 func (ns *NodeService) Disable(name, msg string) error {
-	_, err := ns.Request("POST", name+"/toggleOffline", ReqParams{"offlineMessage": msg})
+	_, err := ns.Request("POST", ns.covertName(name)+"/toggleOffline", ReqParams{"offlineMessage": msg})
 	return err
 }
 
 func (ns *NodeService) Delete(name string) error {
-	_, err := ns.Request("POST", name+"/doDelete")
+	_, err := ns.Request("POST", ns.covertName(name)+"/doDelete")
 	return err
 }

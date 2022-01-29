@@ -45,12 +45,12 @@ func (cs *CredentialService) Delete(name string) error {
 }
 
 func (cs *CredentialService) GetConfigure(name string) (string, error) {
-	resp, err := cs.Request("GET", name+"/config.xml")
+	resp, err := cs.Request("GET", "credential/"+name+"/config.xml")
 	return resp.String(), err
 }
 
 func (cs *CredentialService) SetConfigure(name, xml string) error {
-	_, err := cs.Request("POST", name+"/config.xml", req.BodyXML(xml))
+	_, err := cs.Request("POST", "credential/"+name+"/config.xml", req.BodyXML(xml))
 	return err
 }
 

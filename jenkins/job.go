@@ -112,7 +112,7 @@ func (j *JobItem) SetDescription(description string) error {
 	return err
 }
 
-func (j *JobItem) Build(param ReqParams) (*QueueItem, error) {
+func (j *JobItem) Build(param ReqParams) (*OneQueueItem, error) {
 	entry := func() string {
 		reserved := []string{"token", "delay"}
 		for k := range param {
@@ -138,7 +138,7 @@ func (j *JobItem) Build(param ReqParams) (*QueueItem, error) {
 
 func (j *JobItem) GetBuild(number int) (*BuildItem, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s is a folder", j)
+		return nil, fmt.Errorf("%s have no builds", j)
 	}
 	jobJson := &Job{}
 	if err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson); err != nil {
@@ -154,6 +154,9 @@ func (j *JobItem) GetBuild(number int) (*BuildItem, error) {
 }
 
 func (j *JobItem) Get(name string) (*JobItem, error) {
+	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
+		return nil, fmt.Errorf("%s have no jobs", j)
+	}
 	var folderJson Job
 	if err := j.BindAPIJson(ReqParams{"tree": "jobs[url,name]"}, &folderJson); err != nil {
 		return nil, err
@@ -163,7 +166,7 @@ func (j *JobItem) Get(name string) (*JobItem, error) {
 			return NewJobItem(job.URL, job.Class, j.client), nil
 		}
 	}
-	return nil, fmt.Errorf("%s does not contain job: %s", j, name)
+	return nil, nil
 }
 
 func (j *JobItem) Create(name, xml string) error {
@@ -173,7 +176,7 @@ func (j *JobItem) Create(name, xml string) error {
 
 func (j *JobItem) List(depth int) ([]*JobItem, error) {
 	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s is not a folder", j)
+		return nil, fmt.Errorf("%s have no jobs", j)
 	}
 	query := "jobs[url]"
 	qf := "jobs[url,%s]"
@@ -225,7 +228,7 @@ func (j *JobItem) GetLastUnsucessfulBuild() (*BuildItem, error) {
 
 func (j *JobItem) getBuildByName(name string) (*BuildItem, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s is a folder", j)
+		return nil, fmt.Errorf("%s have no builds", j)
 	}
 	var jobJson map[string]json.RawMessage
 	if err := j.BindAPIJson(ReqParams{"tree": name + "[url]"}, &jobJson); err != nil {
@@ -245,7 +248,7 @@ func (j *JobItem) Delete() error {
 
 func (j *JobItem) ListBuilds() ([]*BuildItem, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s is a folder", j)
+		return nil, fmt.Errorf("%s have no builds", j)
 	}
 	var jobJson Job
 	var builds []*BuildItem

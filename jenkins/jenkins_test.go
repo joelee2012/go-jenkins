@@ -187,16 +187,18 @@ func TestBuildJob(t *testing.T) {
 }
 
 func TestGetJob(t *testing.T) {
+	// check job exist
 	job, err := client.GetJob("folder/pipeline2")
 	assert.Nil(t, err)
 	assert.Equal(t, job.Class, "WorkflowJob")
 
+	// check job does not exist
 	job, err = client.GetJob("folder/notexist")
+	assert.Nil(t, err)
 	assert.Nil(t, job)
-	assert.Contains(t, err.Error(), "not contain job")
 	// wrong path
 	job, err = client.GetJob("folder/pipeline2/notexist")
-	assert.Contains(t, err.Error(), "not contain job")
+	assert.Nil(t, err)
 	assert.Nil(t, job)
 }
 
@@ -216,6 +218,7 @@ func TestSystemCredentials(t *testing.T) {
 	assert.Len(t, creds, 0)
 	assert.Nil(t, cm.Create(credConf))
 	cred, err := cm.Get("user-id")
+	assert.NotNil(t, cred)
 	assert.Nil(t, err)
 	assert.Equal(t, cred.ID, "user-id")
 	conf, err := cm.GetConfigure("user-id")

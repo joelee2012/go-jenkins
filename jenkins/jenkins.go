@@ -73,7 +73,7 @@ func (c *Client) GetCrumb() (*Crumb, error) {
 		return nil, err
 	}
 	if resp.Response().StatusCode != http.StatusOK {
-		return nil, fmt.Errorf(resp.String())
+		return nil, fmt.Errorf("%s: %s", resp.Response().Status, c.URL+"crumbIssuer/api/json")
 	}
 	if err := resp.ToJSON(&c.Crumb); err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func (c *Client) GetVersion() (string, error) {
 	return resp.Response().Header.Get("X-Jenkins"), nil
 }
 
-func (c *Client) BuildJob(fullName string, params ReqParams) (*QueueItem, error) {
+func (c *Client) BuildJob(fullName string, params ReqParams) (*OneQueueItem, error) {
 	return NewJobItem(c.Name2URL(fullName), "Job", c).Build(params)
 }
 
