@@ -6,15 +6,14 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 var (
 	client   *Client
-	folder   *Job
-	pipeline *Job
+	folder   *JobItem
+	pipeline *JobItem
 	jobConf  = `<?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
@@ -92,7 +91,7 @@ func TestGetVersion(t *testing.T) {
 	assert.Equal(t, os.Getenv("JENKINS_VERSION"), version)
 }
 
-func TestNameToUrl(t *testing.T) {
+func TestName2Url(t *testing.T) {
 	var tests = []struct {
 		given, expect string
 	}{
@@ -107,11 +106,11 @@ func TestNameToUrl(t *testing.T) {
 		{"job/job", "job/job/job/job/"},
 	}
 	for _, test := range tests {
-		assert.Equal(t, client.URL+test.expect, client.NameToURL(test.given))
+		assert.Equal(t, client.URL+test.expect, client.Name2URL(test.given))
 	}
 }
 
-func TestUrlToName(t *testing.T) {
+func TestUrl2Name(t *testing.T) {
 	var tests = []struct {
 		expect, given string
 	}{
@@ -120,36 +119,46 @@ func TestUrlToName(t *testing.T) {
 		{"job/job", "job/job/job/job"},
 	}
 	for _, test := range tests {
-		name, _ := client.URLToName(client.URL + test.given)
+		name, _ := client.URL2Name(client.URL + test.given)
 		assert.Equal(t, test.expect, name)
 	}
-	_, err := client.URLToName("http://0.0.0.1/job/folder1/")
+	_, err := client.URL2Name("http://0.0.0.1/job/folder1/")
 	assert.NotNil(t, err)
 }
 
-func TestBuildJob(t *testing.T) {
-	qitem, err := client.BuildJob("folder/pipeline", ReqParams{})
+func TestGetJob(t *testing.T) {
+	// check job exist
+	job, err := client.GetJob("folder/pipeline2")
 	assert.Nil(t, err)
-	var build *Build
-	for {
-		time.Sleep(1 * time.Second)
-		build, err = qitem.GetBuild()
-		assert.Nil(t, err)
-		if build != nil {
-			break
-		}
-	}
+	assert.Equal(t, job.Class, "WorkflowJob")
 
-	// test build.IterateProgressConsoleText
-	var output []string
-	err = build.LoopProgressiveLog("text", func(line string) error {
-		output = append(output, line)
-		time.Sleep(1 * time.Second)
-		return nil
-	})
+	// check job does not exist
+	job, err = client.GetJob("folder/notexist")
 	assert.Nil(t, err)
+	assert.Nil(t, job)
+	// wrong path
+	job, err = client.GetJob("folder/pipeline2/notexist")
 	assert.Nil(t, err)
-	assert.Contains(t, strings.Join(output, ""), os.Getenv("JENKINS_VERSION"))
+	assert.Nil(t, job)
+}
+
+func TestDeleteJob(t *testing.T) {
+	assert.NotNil(t, client.DeleteJob(""))
+	assert.Nil(t, client.CreateJob("folder/pipeline3", jobConf))
+	assert.Nil(t, client.DeleteJob("folder/pipeline3"))
+	assert.NotNil(t, client.DeleteJob("folder/pipeline3"))
+}
+
+func TestListJobs(t *testing.T) {
+	jobs, err := client.ListJobs(0)
+	assert.Nil(t, err)
+	assert.Len(t, jobs, 1)
+	jobs, err = client.ListJobs(1)
+	assert.Nil(t, err)
+	assert.Len(t, jobs, 4)
+}
+func TestBuildJob(t *testing.T) {
+	build := setupBuild(t)
 
 	// test build.IsBuilding
 	building, err := build.IsBuilding()
@@ -162,7 +171,7 @@ func TestBuildJob(t *testing.T) {
 	assert.Equal(t, result, "SUCCESS")
 
 	// test build.GetConsoleText
-	output = []string{}
+	output := []string{}
 	err = build.LoopLog(func(line string) error {
 		output = append(output, line)
 		return nil
@@ -186,35 +195,19 @@ func TestBuildJob(t *testing.T) {
 	assert.Equal(t, build, build1)
 }
 
-func TestGetJob(t *testing.T) {
-	job, err := client.GetJob("folder/pipeline2")
-	assert.Nil(t, err)
-	assert.Equal(t, job.Class, "WorkflowJob")
-
-	job, err = client.GetJob("folder/notexist")
-	assert.Nil(t, job)
-	assert.Contains(t, err.Error(), "not contain job")
-	// wrong path
-	job, err = client.GetJob("folder/pipeline2/notexist")
-	assert.Contains(t, err.Error(), "not contain job")
-	assert.Nil(t, job)
-}
-
-func TestListJobs(t *testing.T) {
-	jobs, err := client.ListJobs(0)
-	assert.Nil(t, err)
-	assert.Len(t, jobs, 1)
-	jobs, err = client.ListJobs(1)
-	assert.Nil(t, err)
-	assert.Len(t, jobs, 4)
-}
-
 func TestSystemCredentials(t *testing.T) {
-	cm := client.Credentials()
+	cm := client.Credentials
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
 	assert.Nil(t, cm.Create(credConf))
+	cred, err := cm.Get("user-id")
+	assert.NotNil(t, cred)
+	assert.Nil(t, err)
+	assert.Equal(t, cred.ID, "user-id")
+	conf, err := cm.GetConfigure("user-id")
+	assert.Nil(t, err)
+	assert.NotEmpty(t, conf)
 	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 1)

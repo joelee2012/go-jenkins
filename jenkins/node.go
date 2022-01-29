@@ -1,19 +1,24 @@
 package jenkins
 
-import "strings"
+import (
+	"strings"
+)
 
-type ComputerSet struct {
+type NodeService struct {
 	*Item
 }
 
-func NewComputerSet(url string, client *Client) *ComputerSet {
-	return &ComputerSet{Item: NewItem(url, "ComputerSet", client)}
+var nodeNameMap = map[string]string{"master": "(master)", "Built-In Node": "(built-in)"}
+
+func NewNodeService(client *Client) *NodeService {
+	return &NodeService{Item: NewItem(client.URL+"computer/", "Nodes", client)}
 }
 
-func (cs *ComputerSet) GetBuilds() ([]*Build, error) {
-	var csJson ComputerSetJson
-	var builds []*Build
-	if err := cs.BindAPIJson(ReqParams{"tree": "computer[executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]]", "depth": "2"}, &csJson); err != nil {
+func (ns *NodeService) GetBuilds() ([]*BuildItem, error) {
+	compSet := &ComputerSet{}
+	var builds []*BuildItem
+	tree := "computer[executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]]"
+	if err := ns.BindAPIJson(ReqParams{"tree": tree, "depth": "2"}, compSet); err != nil {
 		return nil, err
 	}
 	buildConf := map[string]string{}
@@ -28,59 +33,56 @@ func (cs *ComputerSet) GetBuilds() ([]*Build, error) {
 			buildConf[e.CurrentExecutable.URL] = e.CurrentExecutable.Class
 		}
 	}
-	for _, c := range csJson.Computers {
+	for _, c := range compSet.Computers {
 		parseBuild(c.Executors)
 		parseBuild(c.OneOffExecutors)
 	}
 	for k, v := range buildConf {
-		builds = append(builds, NewBuild(k, v, cs.client))
+		builds = append(builds, NewBuildItem(k, v, ns.client))
 	}
 	return builds, nil
 }
 
-func (cs *ComputerSet) Get(name string) (*Computer, error) {
-	var csJson ComputerSetJson
-	if err := cs.BindAPIJson(ReqParams{"tree": "computer[displayName]"}, &csJson); err != nil {
+func (ns *NodeService) Get(name string) (*Computer, error) {
+	compSet := &ComputerSet{}
+	if err := ns.BindAPIJson(ReqParams{}, compSet); err != nil {
 		return nil, err
 	}
-	nodeName := map[string]string{"master": "(master)", "Built-In Node": "(built-in)"}
-	for _, c := range csJson.Computers {
+
+	for _, c := range compSet.Computers {
 		if name == c.DisplayName {
-			if name, ok := nodeName[c.DisplayName]; ok {
-				return &Computer{Item: NewItem(cs.client.URL+name, c.Class, cs.client)}, nil
-			} else {
-				return &Computer{Item: NewItem(cs.client.URL+c.DisplayName, c.Class, cs.client)}, nil
-			}
+			return c, nil
 		}
 	}
 	return nil, nil
 }
 
-func (cs *ComputerSet) List() ([]*Computer, error) {
-	var csJson ComputerSetJson
-	var computers []*Computer
-	if err := cs.BindAPIJson(ReqParams{"tree": "computer[displayName]"}, &csJson); err != nil {
+func (ns *NodeService) List() ([]*Computer, error) {
+	compSet := &ComputerSet{}
+	if err := ns.BindAPIJson(ReqParams{}, compSet); err != nil {
 		return nil, err
 	}
-	nodeName := map[string]string{"master": "(master)", "Built-In Node": "(built-in)"}
-	for _, c := range csJson.Computers {
-		if name, ok := nodeName[c.DisplayName]; ok {
-			computers = append(computers, &Computer{Item: NewItem(cs.client.URL+name, c.Class, cs.client)})
-		} else {
-			computers = append(computers, &Computer{Item: NewItem(cs.client.URL+c.DisplayName, c.Class, cs.client)})
-		}
+	return compSet.Computers, nil
+}
+
+func (ns *NodeService) covertName(name string) string {
+	if displayName, ok := nodeNameMap[name]; ok {
+		return displayName
 	}
-	return computers, nil
+	return name
 }
 
-type Computer struct {
-	*Item
+func (ns *NodeService) Enable(name string) error {
+	_, err := ns.Request("POST", ns.covertName(name)+"/toggleOffline", ReqParams{"offlineMessage": ""})
+	return err
 }
 
-func (c *Computer) Enable() error {
-	return doRequestAndDropResp(c, "POST", "toggleOffline", ReqParams{"offlineMessage": ""})
+func (ns *NodeService) Disable(name, msg string) error {
+	_, err := ns.Request("POST", ns.covertName(name)+"/toggleOffline", ReqParams{"offlineMessage": msg})
+	return err
 }
 
-func (c *Computer) Disable(msg string) error {
-	return doRequestAndDropResp(c, "POST", "toggleOffline", ReqParams{"offlineMessage": msg})
+func (ns *NodeService) Delete(name string) error {
+	_, err := ns.Request("POST", ns.covertName(name)+"/doDelete")
+	return err
 }

@@ -1,63 +1,63 @@
 package jenkins
 
-import "github.com/imroc/req"
+import (
+	"github.com/imroc/req"
+)
 
-type Credentials struct {
+type CredentialService struct {
 	*Item
 }
 
-func (cs *Credentials) Get(name string) (*Credential, error) {
-	var credsJson CredentialsJson
+func NewCredentialService(v interface{}) *CredentialService {
+	if c, ok := v.(*Client); ok {
+		return &CredentialService{Item: NewItem(c.URL+"credentials/store/system/domain/_/", "Credentials", c)}
+	}
+
+	if c, ok := v.(*JobItem); ok {
+		return &CredentialService{Item: NewItem(c.URL+"credentials/store/folder/domain/_/", "Credentials", c.client)}
+	}
+	return nil
+}
+
+func (cs *CredentialService) Get(name string) (*Credential, error) {
+	var credsJson Credentials
 	if err := cs.BindAPIJson(ReqParams{"depth": "1"}, &credsJson); err != nil {
 		return nil, err
 	}
 	if credsJson.Credentials != nil {
 		for _, cred := range credsJson.Credentials {
 			if cred.ID == name {
-				return &Credential{Item: NewItem(cs.URL+"credential/"+name, "Credential", cs.client)}, nil
+				return cred, nil
 			}
 		}
 	}
 	return nil, nil
 }
 
-func (cs *Credentials) Create(xml string) error {
+func (cs *CredentialService) Create(xml string) error {
 	_, err := cs.Request("POST", "createCredentials", req.BodyXML(xml))
 	return err
 }
 
-func (cs *Credentials) Delete(name string) error {
-	cred, err := cs.Get(name)
-	if err != nil {
-		return err
-	}
-	return cred.Delete()
+func (cs *CredentialService) Delete(name string) error {
+	_, err := cs.Request("POST", "credential/"+name+"/doDelete")
+	return err
 }
 
-func (cs *Credentials) List() ([]*Credential, error) {
-	var credsJson CredentialsJson
+func (cs *CredentialService) GetConfigure(name string) (string, error) {
+	resp, err := cs.Request("GET", "credential/"+name+"/config.xml")
+	return resp.String(), err
+}
+
+func (cs *CredentialService) SetConfigure(name, xml string) error {
+	_, err := cs.Request("POST", "credential/"+name+"/config.xml", req.BodyXML(xml))
+	return err
+}
+
+func (cs *CredentialService) List() ([]*Credential, error) {
+	var credsJson Credentials
 	if err := cs.BindAPIJson(ReqParams{"depth": "1"}, &credsJson); err != nil {
 		return nil, err
 	}
-	var creds []*Credential
-	for _, cred := range credsJson.Credentials {
-		creds = append(creds, &Credential{Item: NewItem(cs.URL+"credential/"+cred.ID, "Credential", cs.client)})
-	}
-	return creds, nil
-}
-
-type Credential struct {
-	*Item
-}
-
-func (c *Credential) Delete() error {
-	return doDelete(c)
-}
-
-func (c *Credential) SetConfigure(xml string) error {
-	return doSetConfigure(c, xml)
-}
-
-func (c *Credential) GetConfigure(xml string) (string, error) {
-	return doGetConfigure(c)
+	return credsJson.Credentials, nil
 }

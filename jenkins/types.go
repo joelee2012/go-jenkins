@@ -1,74 +1,64 @@
 package jenkins
 
-// type FolderJson struct {
-// 	Class           string        `json:"_class"`
-// 	Actions         []Actions     `json:"actions"`
-// 	Description     string        `json:"description"`
-// 	DisplayName     string        `json:"displayName"`
-// 	FullDisplayName string        `json:"fullDisplayName"`
-// 	FullName        string        `json:"fullName"`
-// 	Name            string        `json:"name"`
-// 	URL             string        `json:"url"`
-// 	HealthReport    []interface{} `json:"healthReport"`
-// 	Jobs            []JobJson     `json:"jobs"`
-// 	PrimaryView     PrimaryView   `json:"primaryView"`
-// 	Views           []Views       `json:"views"`
-// }
+import "fmt"
 
-// type JobJson struct {
-// 	Class                 string         `json:"_class"`
-// 	Actions               []Actions      `json:"actions"`
-// 	Description           string         `json:"description"`
-// 	DisplayName           string         `json:"displayName"`
-// 	DisplayNameOrNull     interface{}    `json:"displayNameOrNull"`
-// 	FullDisplayName       string         `json:"fullDisplayName"`
-// 	FullName              string         `json:"fullName"`
-// 	Name                  string         `json:"name"`
-// 	URL                   string         `json:"url"`
-// 	Buildable             bool           `json:"buildable"`
-// 	Builds                []BuildJson    `json:"builds"`
-// 	Color                 string         `json:"color"`
-// 	FirstBuild            BuildJson      `json:"firstBuild"`
-// 	HealthReport          []HealthReport `json:"healthReport"`
-// 	InQueue               bool           `json:"inQueue"`
-// 	KeepDependencies      bool           `json:"keepDependencies"`
-// 	LastBuild             BuildJson      `json:"lastBuild"`
-// 	LastCompletedBuild    BuildJson      `json:"lastCompletedBuild"`
-// 	LastFailedBuild       BuildJson      `json:"lastFailedBuild"`
-// 	LastStableBuild       BuildJson      `json:"lastStableBuild"`
-// 	LastSuccessfulBuild   BuildJson      `json:"lastSuccessfulBuild"`
-// 	LastUnstableBuild     BuildJson      `json:"lastUnstableBuild"`
-// 	LastUnsuccessfulBuild BuildJson      `json:"lastUnsuccessfulBuild"`
-// 	NextBuildNumber       int            `json:"nextBuildNumber"`
-// 	Property              []Property     `json:"property"`
-// 	QueueItem             interface{}    `json:"queueItem"`
-// 	ConcurrentBuild       bool           `json:"concurrentBuild"`
-// 	ResumeBlocked         bool           `json:"resumeBlocked"`
-// }
+type Job struct {
+	Class                 string         `json:"_class"`
+	Actions               []Actions      `json:"actions"`
+	Description           string         `json:"description"`
+	DisplayName           string         `json:"displayName"`
+	DisplayNameOrNull     interface{}    `json:"displayNameOrNull"`
+	FullDisplayName       string         `json:"fullDisplayName"`
+	FullName              string         `json:"fullName"`
+	Name                  string         `json:"name"`
+	URL                   string         `json:"url"`
+	Buildable             bool           `json:"buildable"`
+	Builds                []*Build       `json:"builds"`
+	Color                 string         `json:"color"`
+	FirstBuild            *Build         `json:"firstBuild"`
+	HealthReport          []HealthReport `json:"healthReport"`
+	InQueue               bool           `json:"inQueue"`
+	KeepDependencies      bool           `json:"keepDependencies"`
+	LastBuild             *Build         `json:"lastBuild"`
+	LastCompletedBuild    *Build         `json:"lastCompletedBuild"`
+	LastFailedBuild       *Build         `json:"lastFailedBuild"`
+	LastStableBuild       *Build         `json:"lastStableBuild"`
+	LastSuccessfulBuild   *Build         `json:"lastSuccessfulBuild"`
+	LastUnstableBuild     *Build         `json:"lastUnstableBuild"`
+	LastUnsuccessfulBuild *Build         `json:"lastUnsuccessfulBuild"`
+	NextBuildNumber       int            `json:"nextBuildNumber"`
+	Property              []Property     `json:"property"`
+	QueueItem             interface{}    `json:"queueItem"`
+	ConcurrentBuild       bool           `json:"concurrentBuild"`
+	ResumeBlocked         bool           `json:"resumeBlocked"`
+	Jobs                  []*Job         `json:"jobs"`
+	PrimaryView           *PrimaryView   `json:"primaryView"`
+	Views                 []*Views       `json:"views"`
+}
 
-// type BuildJson struct {
-// 	Class             string       `json:"_class"`
-// 	Actions           []Actions    `json:"actions"`
-// 	Artifacts         []Artifacts  `json:"artifacts"`
-// 	Building          bool         `json:"building"`
-// 	Description       interface{}  `json:"description"`
-// 	DisplayName       string       `json:"displayName"`
-// 	Duration          int          `json:"duration"`
-// 	EstimatedDuration int          `json:"estimatedDuration"`
-// 	Executor          interface{}  `json:"executor"`
-// 	FullDisplayName   string       `json:"fullDisplayName"`
-// 	ID                string       `json:"id"`
-// 	KeepLog           bool         `json:"keepLog"`
-// 	Number            int          `json:"number"`
-// 	QueueID           int          `json:"queueId"`
-// 	Result            string       `json:"result"`
-// 	Timestamp         int64        `json:"timestamp"`
-// 	URL               string       `json:"url"`
-// 	ChangeSets        []ChangeSets `json:"changeSets"`
-// 	Culprits          []Culprits   `json:"culprits"`
-// 	// NextBuild         BuildJson    `json:"nextBuild"`
-// 	// PreviousBuild BuildJson `json:"previousBuild"`
-// }
+type Build struct {
+	Class             string       `json:"_class"`
+	Actions           []Actions    `json:"actions"`
+	Artifacts         []Artifacts  `json:"artifacts"`
+	Building          bool         `json:"building"`
+	Description       interface{}  `json:"description"`
+	DisplayName       string       `json:"displayName"`
+	Duration          int          `json:"duration"`
+	EstimatedDuration int          `json:"estimatedDuration"`
+	Executor          interface{}  `json:"executor"`
+	FullDisplayName   string       `json:"fullDisplayName"`
+	ID                string       `json:"id"`
+	KeepLog           bool         `json:"keepLog"`
+	Number            int          `json:"number"`
+	QueueID           int          `json:"queueId"`
+	Result            string       `json:"result"`
+	Timestamp         int64        `json:"timestamp"`
+	URL               string       `json:"url"`
+	ChangeSets        []ChangeSets `json:"changeSets"`
+	Culprits          []Culprits   `json:"culprits"`
+	NextBuild         *Build       `json:"nextBuild"`
+	PreviousBuild     *Build       `json:"previousBuild"`
+}
 type Parameters struct {
 	Class string `json:"_class"`
 	Name  string `json:"name"`
@@ -222,12 +212,12 @@ type Property struct {
 	ParameterDefinitions []ParameterDefinitions `json:"parameterDefinitions,omitempty"`
 }
 
-type ComputerSetJson struct {
-	Class          string         `json:"_class"`
-	BusyExecutors  int            `json:"busyExecutors"`
-	Computers      []ComputerJson `json:"computer"`
-	DisplayName    string         `json:"displayName"`
-	TotalExecutors int            `json:"totalExecutors"`
+type ComputerSet struct {
+	Class          string      `json:"_class"`
+	BusyExecutors  int         `json:"busyExecutors"`
+	Computers      []*Computer `json:"computer"`
+	DisplayName    string      `json:"displayName"`
+	TotalExecutors int         `json:"totalExecutors"`
 }
 
 type Nodes struct {
@@ -354,7 +344,7 @@ type OneOffExecutor struct {
 	Progress          int               `json:"progress"`
 }
 
-type ComputerJson struct {
+type Computer struct {
 	Class               string           `json:"_class"`
 	Actions             []Actions        `json:"actions"`
 	AssignedLabels      []AssignedLabels `json:"assignedLabels"`
@@ -377,13 +367,17 @@ type ComputerJson struct {
 	AbsoluteRemotePath  interface{}      `json:"absoluteRemotePath,omitempty"`
 }
 
-type QueueJson struct {
-	Class             string          `json:"_class"`
-	DiscoverableItems []interface{}   `json:"discoverableItems"`
-	Items             []QueueItemJson `json:"items"`
+func (c Computer) String() string {
+	return fmt.Sprintf("<%s: %s>", c.Class, c.DisplayName)
 }
 
-type QueueItemJson struct {
+type Queue struct {
+	Class             string        `json:"_class"`
+	DiscoverableItems []interface{} `json:"discoverableItems"`
+	Items             []*QueueItem  `json:"items"`
+}
+
+type QueueItem struct {
 	Class        string      `json:"_class"`
 	Actions      []Actions   `json:"actions"`
 	Blocked      bool        `json:"blocked"`
@@ -412,21 +406,25 @@ type Executable struct {
 	URL    string `json:"url"`
 }
 
-type CredentialsJson struct {
-	Class           string           `json:"_class"`
-	Credentials     []CredentialJson `json:"credentials"`
-	Description     string           `json:"description"`
-	DisplayName     string           `json:"displayName"`
-	FullDisplayName string           `json:"fullDisplayName"`
-	FullName        string           `json:"fullName"`
-	Global          bool             `json:"global"`
-	URLName         string           `json:"urlName"`
+type Credentials struct {
+	Class           string        `json:"_class"`
+	Credentials     []*Credential `json:"credentials"`
+	Description     string        `json:"description"`
+	DisplayName     string        `json:"displayName"`
+	FullDisplayName string        `json:"fullDisplayName"`
+	FullName        string        `json:"fullName"`
+	Global          bool          `json:"global"`
+	URLName         string        `json:"urlName"`
 }
 
-type CredentialJson struct {
+type Credential struct {
 	Description string `json:"description"`
 	DisplayName string `json:"displayName"`
 	FullName    string `json:"fullName"`
 	ID          string `json:"id"`
 	TypeName    string `json:"typeName"`
+}
+
+func (c Credential) String() string {
+	return fmt.Sprintf("<%s: %s (%s)>", c.TypeName, c.FullName, c.Description)
 }

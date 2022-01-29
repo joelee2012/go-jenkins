@@ -31,7 +31,7 @@ func TestRename(t *testing.T) {
 
 	// old job 'pipeline' should not exist
 	old, err := folder.Get("pipeline")
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 	assert.Nil(t, old)
 
 	// revert
@@ -100,7 +100,7 @@ func TestListBuilds(t *testing.T) {
 }
 
 func TestFolderCredentials(t *testing.T) {
-	cm := folder.Credentials()
+	cm := folder.Credentials
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
@@ -150,7 +150,7 @@ func TestGetBuildFunctions(t *testing.T) {
 func TestMove(t *testing.T) {
 	assert.Nil(t, pipeline.Move("/folder/folder1"))
 	job, err := client.GetJob("folder/pipeline")
-	assert.Contains(t, err.Error(), "not contain job")
+	assert.Nil(t, err)
 	assert.Nil(t, job)
 	job, err = client.GetJob("folder/folder1/pipeline")
 	assert.Nil(t, err)

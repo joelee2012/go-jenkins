@@ -9,15 +9,18 @@ import (
 	"github.com/imroc/req"
 )
 
-type Job struct {
+type JobItem struct {
 	*Item
+	Credentials *CredentialService
 }
 
-func NewJob(url, class string, client *Client) *Job {
-	return &Job{Item: NewItem(url, class, client)}
+func NewJobItem(url, class string, client *Client) *JobItem {
+	j := &JobItem{Item: NewItem(url, class, client)}
+	j.Credentials = NewCredentialService(j)
+	return j
 }
 
-func (j *Job) Rename(name string) error {
+func (j *JobItem) Rename(name string) error {
 	resp, err := j.Request("POST", "confirmRename", ReqParams{"newName": name})
 	if err != nil {
 		return err
@@ -27,7 +30,7 @@ func (j *Job) Rename(name string) error {
 	return nil
 }
 
-func (j *Job) Move(path string) error {
+func (j *JobItem) Move(path string) error {
 	path = strings.Trim(path, "/")
 	resp, err := j.Request("POST", "move/move", ReqParams{"destination": "/" + path})
 	if err != nil {
@@ -38,12 +41,13 @@ func (j *Job) Move(path string) error {
 	return nil
 }
 
-func (j *Job) Copy(src, dest string) error {
-	return doRequestAndDropResp(j, "POST", "createItem", ReqParams{"name": dest, "mode": "copy", "from": src})
+func (j *JobItem) Copy(src, dest string) error {
+	_, err := j.Request("POST", "createItem", ReqParams{"name": dest, "mode": "copy", "from": src})
+	return err
 }
 
-func (j *Job) GetParent() (*Job, error) {
-	fullName, _ := j.client.URLToName(j.URL)
+func (j *JobItem) GetParent() (*JobItem, error) {
+	fullName, _ := j.client.URL2Name(j.URL)
 	dir, _ := path.Split(strings.Trim(fullName, "/"))
 	if dir == "" {
 		return nil, nil
@@ -51,55 +55,64 @@ func (j *Job) GetParent() (*Job, error) {
 	return j.client.GetJob(dir)
 }
 
-func (j *Job) GetConfigure() (string, error) {
-	return doGetConfigure(j)
+func (j *JobItem) GetConfigure() (string, error) {
+	resp, err := j.Request("GET", "/config.xml")
+	return resp.String(), err
 }
 
-func (j *Job) SetConfigure(xml string) error {
-	return doSetConfigure(j, xml)
+func (j *JobItem) SetConfigure(xml string) error {
+	_, err := j.Request("POST", "/config.xml", req.BodyXML(xml))
+	return err
 }
 
-func (j *Job) Disable() error {
-	return doDisable(j)
+func (j *JobItem) Disable() error {
+	_, err := j.Request("POST", "disable")
+	return err
 }
 
-func (j *Job) Enable() error {
-	return doEnable(j)
+func (j *JobItem) Enable() error {
+	_, err := j.Request("POST", "enable")
+	return err
 }
 
-func (j *Job) IsBuildable() (bool, error) {
-	var apiJson struct {
+func (j *JobItem) IsBuildable() (bool, error) {
+	var job struct {
 		Class     string `json:"_class"`
 		Buildable bool   `json:"buildable"`
 	}
-	err := j.BindAPIJson(ReqParams{"tree": "buildable"}, &apiJson)
-	return apiJson.Buildable, err
+	err := j.BindAPIJson(ReqParams{"tree": "buildable"}, &job)
+	return job.Buildable, err
 }
 
-func (j *Job) GetName() string {
+func (j *JobItem) GetName() string {
 	_, name := path.Split(strings.Trim(j.URL, "/"))
 	return name
 }
 
-func (j *Job) GetFullName() string {
-	fullname, _ := j.client.URLToName(j.URL)
+func (j *JobItem) GetFullName() string {
+	fullname, _ := j.client.URL2Name(j.URL)
 	return fullname
 }
 
-func (j *Job) GetFullDisplayName() string {
-	fullname, _ := j.client.URLToName(j.URL)
+func (j *JobItem) GetFullDisplayName() string {
+	fullname, _ := j.client.URL2Name(j.URL)
 	return strings.ReplaceAll(fullname, "/", " » ")
 }
 
-func (j *Job) GetDescription() (string, error) {
-	return doGetDescription(j)
+func (j *JobItem) GetDescription() (string, error) {
+	data := make(map[string]string)
+	if err := j.BindAPIJson(ReqParams{"tree": "description"}, &data); err != nil {
+		return "", err
+	}
+	return data["description"], nil
 }
 
-func (j *Job) SetDescription(description string) error {
-	return doSetDescription(j, description)
+func (j *JobItem) SetDescription(description string) error {
+	_, err := j.Request("POST", "submitDescription", ReqParams{"description": description})
+	return err
 }
 
-func (j *Job) Build(param ReqParams) (*QueueItem, error) {
+func (j *JobItem) Build(param ReqParams) (*OneQueueItem, error) {
 	entry := func() string {
 		reserved := []string{"token", "delay"}
 		for k := range param {
@@ -123,135 +136,131 @@ func (j *Job) Build(param ReqParams) (*QueueItem, error) {
 	return NewQueueItem(url.String(), j.client), nil
 }
 
-func (j *Job) GetBuild(number int) (*Build, error) {
+func (j *JobItem) GetBuild(number int) (*BuildItem, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s is a folder", j)
+		return nil, fmt.Errorf("%s have no builds", j)
 	}
-	var jobJson JobShortJson
+	jobJson := &Job{}
 	if err := j.BindAPIJson(ReqParams{"tree": "builds[number,url]"}, &jobJson); err != nil {
 		return nil, err
 	}
 
 	for _, build := range jobJson.Builds {
 		if number == build.Number {
-			return NewBuild(build.URL, parseClass(build.Class), j.client), nil
+			return NewBuildItem(build.URL, parseClass(build.Class), j.client), nil
 		}
 	}
 	return nil, nil
 }
 
-func (j *Job) Get(name string) (*Job, error) {
-	var folderJson JobShortJson
+func (j *JobItem) Get(name string) (*JobItem, error) {
+	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
+		return nil, fmt.Errorf("%s have no jobs", j)
+	}
+	var folderJson Job
 	if err := j.BindAPIJson(ReqParams{"tree": "jobs[url,name]"}, &folderJson); err != nil {
 		return nil, err
 	}
 	for _, job := range folderJson.Jobs {
 		if job.Name == name {
-			return NewJob(job.URL, job.Class, j.client), nil
+			return NewJobItem(job.URL, job.Class, j.client), nil
 		}
 	}
-	return nil, fmt.Errorf("%s does not contain job: %s", j, name)
+	return nil, nil
 }
 
-func (j *Job) Create(name, xml string) error {
-	return doRequestAndDropResp(j, "POST", "createItem", ReqParams{"name": name}, req.BodyXML(xml))
+func (j *JobItem) Create(name, xml string) error {
+	_, err := j.Request("POST", "createItem", ReqParams{"name": name}, req.BodyXML(xml))
+	return err
 }
 
-func (j *Job) List(depth int) ([]*Job, error) {
+func (j *JobItem) List(depth int) ([]*JobItem, error) {
 	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s is not a folder", j)
+		return nil, fmt.Errorf("%s have no jobs", j)
 	}
 	query := "jobs[url]"
 	qf := "jobs[url,%s]"
 	for i := 0; i < depth; i++ {
 		query = fmt.Sprintf(qf, query)
 	}
-	var folderJson JobShortJson
+	var folderJson Job
 	if err := j.BindAPIJson(ReqParams{"tree": query}, &folderJson); err != nil {
 		return nil, err
 	}
-	var jobs []*Job
-	var _resolve func(item *JobShortJson)
-	_resolve = func(item *JobShortJson) {
+	var jobs []*JobItem
+	var _resolve func(item *Job)
+	_resolve = func(item *Job) {
 		for _, job := range item.Jobs {
 			if len(job.Jobs) > 0 {
-				_resolve(&job)
+				_resolve(job)
 			}
-			jobs = append(jobs, NewJob(job.URL, job.Class, j.client))
+			jobs = append(jobs, NewJobItem(job.URL, job.Class, j.client))
 		}
 	}
 	_resolve(&folderJson)
 	return jobs, nil
 }
 
-func (j *Job) Credentials() *Credentials {
-	return &Credentials{Item: NewItem(j.URL+"credentials/store/folder/domain/_/", "Credentials", j.client)}
-}
-
-func (j *Job) GetFirstBuild() (*Build, error) {
+func (j *JobItem) GetFirstBuild() (*BuildItem, error) {
 	return j.getBuildByName("firstBuild")
 }
-func (j *Job) GetLastBuild() (*Build, error) {
+func (j *JobItem) GetLastBuild() (*BuildItem, error) {
 	return j.getBuildByName("lastBuild")
 }
-func (j *Job) GetLastCompleteBuild() (*Build, error) {
+func (j *JobItem) GetLastCompleteBuild() (*BuildItem, error) {
 	return j.getBuildByName("lastCompletedBuild")
 }
-func (j *Job) GetLastFailedBuild() (*Build, error) {
+func (j *JobItem) GetLastFailedBuild() (*BuildItem, error) {
 	return j.getBuildByName("lastFailedBuild")
 }
-func (j *Job) GetLastStableBuild() (*Build, error) {
+func (j *JobItem) GetLastStableBuild() (*BuildItem, error) {
 	return j.getBuildByName("lastStableBuild")
 }
-func (j *Job) GetLastUnstableBuild() (*Build, error) {
+func (j *JobItem) GetLastUnstableBuild() (*BuildItem, error) {
 	return j.getBuildByName("lastUnstableBuild")
 }
-func (j *Job) GetLastSuccessfulBuild() (*Build, error) {
+func (j *JobItem) GetLastSuccessfulBuild() (*BuildItem, error) {
 	return j.getBuildByName("lastSuccessfulBuild")
 }
-func (j *Job) GetLastUnsucessfulBuild() (*Build, error) {
+func (j *JobItem) GetLastUnsucessfulBuild() (*BuildItem, error) {
 	return j.getBuildByName("lastUnsuccessfulBuild")
 }
 
-func (j *Job) getBuildByName(name string) (*Build, error) {
+func (j *JobItem) getBuildByName(name string) (*BuildItem, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s is a folder", j)
+		return nil, fmt.Errorf("%s have no builds", j)
 	}
 	var jobJson map[string]json.RawMessage
 	if err := j.BindAPIJson(ReqParams{"tree": name + "[url]"}, &jobJson); err != nil {
 		return nil, err
 	}
-	var build BuildShortJson
-	if err := json.Unmarshal(jobJson[name], &build); err != nil {
+	if string(jobJson[name]) == "null" {
+		return nil, nil
+	}
+	build := &Build{}
+	if err := json.Unmarshal(jobJson[name], build); err != nil {
 		return nil, err
 	}
-	return NewBuild(build.URL, build.Class, j.client), nil
+	return NewBuildItem(build.URL, build.Class, j.client), nil
 }
 
-func (j *Job) Delete() error {
-	return doDelete(j)
+func (j *JobItem) Delete() error {
+	_, err := j.Request("POST", "doDelete")
+	return err
 }
 
-func (j *Job) ListBuilds() ([]*Build, error) {
+func (j *JobItem) ListBuilds() ([]*BuildItem, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s is a folder", j)
+		return nil, fmt.Errorf("%s have no builds", j)
 	}
-	var jobJson JobShortJson
-	var builds []*Build
+	var jobJson Job
+	var builds []*BuildItem
 	if err := j.BindAPIJson(ReqParams{"tree": "builds[url]"}, &jobJson); err != nil {
 		return nil, err
 	}
 
 	for _, build := range jobJson.Builds {
-		builds = append(builds, NewBuild(build.URL, parseClass(build.Class), j.client))
+		builds = append(builds, NewBuildItem(build.URL, parseClass(build.Class), j.client))
 	}
 	return builds, nil
-}
-
-type JobShortJson struct {
-	Class  string           `json:"_class"`
-	Builds []BuildShortJson `json:"builds"`
-	Name   string           `json:"name"`
-	URL    string           `json:"url"`
-	Jobs   []JobShortJson   `json:"jobs"`
 }

@@ -1,51 +1,50 @@
 package jenkins
 
-type QueueItem struct {
+type OneQueueItem struct {
 	*Item
 	ID    int
-	build *Build
+	build *BuildItem
 }
 
-func NewQueueItem(url string, client *Client) *QueueItem {
-	return &QueueItem{
+func NewQueueItem(url string, client *Client) *OneQueueItem {
+	return &OneQueueItem{
 		Item:  NewItem(url, "QueueItem", client),
 		ID:    parseId(url),
 		build: nil,
 	}
 }
 
-func (q *QueueItem) GetJob() (*Job, error) {
-	var queueJson QueueItemJson
+func (q *OneQueueItem) GetJob() (*JobItem, error) {
+	var queueJson QueueItem
 	if err := q.BindAPIJson(ReqParams{}, &queueJson); err != nil {
 		return nil, err
 	}
 	if parseClass(queueJson.Class) == "BuildableItem" {
 		return q.build.GetJob()
 	}
-	return NewJob(queueJson.Task.URL, queueJson.Task.Class, q.client), nil
+	return NewJobItem(queueJson.Task.URL, queueJson.Task.Class, q.client), nil
 }
 
-func (q *QueueItem) GetBuild() (*Build, error) {
+func (q *OneQueueItem) GetBuild() (*BuildItem, error) {
 	if q.build != nil {
 		return q.build, nil
 	}
-	var queueJson QueueItemJson
+	var queueJson QueueItem
 	if err := q.BindAPIJson(ReqParams{}, &queueJson); err != nil {
 		return nil, err
 	}
 	var err error
 	switch parseClass(queueJson.Class) {
 	case "LeftItem":
-		q.build = NewBuild(queueJson.Executable.URL, queueJson.Executable.Class, q.client)
+		q.build = NewBuildItem(queueJson.Executable.URL, queueJson.Executable.Class, q.client)
 	case "BuildableItem", "WaitingItem":
 		q.build, err = q.getWaitingBuild()
 	}
 	return q.build, err
 }
 
-func (q *QueueItem) getWaitingBuild() (*Build, error) {
-	cs := q.client.ComputerSet()
-	builds, err := cs.GetBuilds()
+func (q *OneQueueItem) getWaitingBuild() (*BuildItem, error) {
+	builds, err := q.client.Nodes.GetBuilds()
 	if err != nil {
 		return nil, err
 	}
@@ -61,31 +60,36 @@ func (q *QueueItem) getWaitingBuild() (*Build, error) {
 			return build, nil
 		}
 	}
+	// build is not avaliable and no error
 	return nil, nil
 }
 
-type Queue struct {
-	Item
+type QueueService struct {
+	*Item
 }
 
-func (q *Queue) List() ([]*QueueItem, error) {
-	var qJson QueueJson
-	if err := q.BindAPIJson(ReqParams{}, &qJson); err != nil {
+func NewQueueService(c *Client) *QueueService {
+	return &QueueService{Item: NewItem(c.URL+"queue/", "Queue", c)}
+}
+
+func (q *QueueService) List() ([]*OneQueueItem, error) {
+	queue := &Queue{}
+	if err := q.BindAPIJson(ReqParams{}, queue); err != nil {
 		return nil, err
 	}
-	var items []*QueueItem
-	for _, item := range qJson.Items {
+	var items []*OneQueueItem
+	for _, item := range queue.Items {
 		items = append(items, NewQueueItem(item.URL, q.client))
 	}
 	return items, nil
 }
 
-func (q *Queue) Get(id int) (*QueueItem, error) {
-	var qJson QueueJson
-	if err := q.BindAPIJson(ReqParams{}, &qJson); err != nil {
+func (q *QueueService) Get(id int) (*OneQueueItem, error) {
+	var queue Queue
+	if err := q.BindAPIJson(ReqParams{}, &queue); err != nil {
 		return nil, err
 	}
-	for _, item := range qJson.Items {
+	for _, item := range queue.Items {
 		if item.ID == id {
 			return NewQueueItem(item.URL, q.client), nil
 		}
@@ -93,6 +97,7 @@ func (q *Queue) Get(id int) (*QueueItem, error) {
 	return nil, nil
 }
 
-func (q *Queue) Cancel(id int) error {
-	return doRequestAndDropResp(q, "POST", "cancelItem", ReqParams{"id": id})
+func (q *QueueService) Cancel(id int) error {
+	_, err := q.Request("POST", "cancelItem", ReqParams{"id": id})
+	return err
 }
