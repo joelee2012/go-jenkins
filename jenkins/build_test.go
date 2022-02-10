@@ -105,6 +105,7 @@ func TestStopBuildItem(t *testing.T) {
 	result, err := build.GetResult()
 	assert.Nil(t, err)
 	assert.Equal(t, result, "ABORTED")
-	// revert configure
+	// delete build and revert configure
+	assert.Nil(t, build.Delete())
 	assert.Nil(t, pipeline.SetConfigure(jobConf))
 }
