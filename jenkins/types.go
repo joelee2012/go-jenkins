@@ -190,6 +190,10 @@ type View struct {
 	Property    []string `json:"property"`
 }
 
+func (v View) String() string {
+	return fmt.Sprintf("<%s: %s>", parseClass(v.Class), v.URL)
+}
+
 type HealthReport struct {
 	Description   string `json:"description"`
 	IconClassName string `json:"iconClassName"`
@@ -371,7 +375,7 @@ type Computer struct {
 }
 
 func (c Computer) String() string {
-	return fmt.Sprintf("<%s: %s>", c.Class, c.DisplayName)
+	return fmt.Sprintf("<%s: %s>", parseClass(c.Class), c.DisplayName)
 }
 
 type Queue struct {

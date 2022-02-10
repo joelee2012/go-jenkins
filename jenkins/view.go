@@ -1,8 +1,6 @@
 package jenkins
 
 import (
-	"strings"
-
 	"github.com/imroc/req"
 )
 
@@ -20,14 +18,14 @@ func NewViewService(v interface{}) *ViewService {
 	return nil
 }
 
-func (v *ViewService) Get(name string) (*ViewItem, error) {
+func (v *ViewService) Get(name string) (*View, error) {
 	jobJson := &Job{}
-	if err := v.BindAPIJson(ReqParams{"tree": "views[name,url]"}, jobJson); err != nil {
+	if err := v.BindAPIJson(ReqParams{"tree": "views[name,url,description]"}, jobJson); err != nil {
 		return nil, err
 	}
 	for _, view := range jobJson.Views {
 		if view.Name == name {
-			return NewViewItem(view, v.client), nil
+			return view, nil
 		}
 	}
 	return nil, nil
@@ -37,39 +35,55 @@ func (v *ViewService) Create(name, xml string) error {
 	_, err := v.Request("POST", "createView", ReqParams{"name": name}, req.BodyXML(xml))
 	return err
 }
+func (v *ViewService) Delete(name string) error {
+	_, err := v.Request("POST", "view/"+name+"/doDelete")
+	return err
+}
 
-func (v *ViewService) List() ([]*ViewItem, error) {
+func (v *ViewService) AddJobToView(name, job string) error {
+	_, err := v.Request("POST", "view/"+name+"/addJobToView", ReqParams{"name": job})
+	return err
+}
+
+func (v *ViewService) RemoveJobFromView(name, job string) error {
+	_, err := v.Request("POST", "view/"+name+"/removeJobFromView", ReqParams{"name": job})
+	return err
+}
+
+func (v *ViewService) GetConfigure(name string) (string, error) {
+	resp, err := v.Request("GET", "view/"+name+"/config.xml")
+	return resp.String(), err
+}
+
+func (v *ViewService) SetConfigure(name, xml string) error {
+	_, err := v.Request("POST", "view/"+name+"/config.xml", req.BodyXML(xml))
+	return err
+}
+
+func (v *ViewService) SetDescription(name, description string) error {
+	_, err := v.Request("POST", "view/"+name+"/submitDescription", ReqParams{"description": description})
+	return err
+}
+
+func (v *ViewService) List() ([]*View, error) {
 	jobJson := &Job{}
 	if err := v.BindAPIJson(ReqParams{"tree": "views[name,url]"}, jobJson); err != nil {
 		return nil, err
 	}
-	var views []*ViewItem
-	for _, view := range jobJson.Views {
-		views = append(views, NewViewItem(view, v.client))
+	return jobJson.Views, nil
+}
+
+func (v *ViewService) bindViewAPIJson(name string, params ReqParams, o interface{}) error {
+	resp, err := v.Request("GET", "view/"+name+"/api/json", params)
+	if err != nil {
+		return err
 	}
-	return views, nil
+	return resp.ToJSON(o)
 }
 
-type ViewItem struct {
-	*Item
-	Name string
-}
-
-func NewViewItem(view *View, client *Client) *ViewItem {
-	// name of all view for jenkins is 'all', but for folder is 'All'
-	url := view.URL
-	if strings.HasSuffix(view.Class, "AllView") {
-		if client.URL == view.URL {
-			url += "view/all"
-		}
-		url += "view/All"
-	}
-	return &ViewItem{Item: NewItem(url, view.Class, client), Name: view.Name}
-}
-
-func (v *ViewItem) GetJob(name string) (*JobItem, error) {
+func (v *ViewService) GetJobFromView(name, job string) (*JobItem, error) {
 	view := &View{}
-	if err := v.BindAPIJson(ReqParams{"tree": "jobs[name,url]"}, view); err != nil {
+	if err := v.bindViewAPIJson(name, ReqParams{"tree": "jobs[name,url]"}, view); err != nil {
 		return nil, err
 	}
 	for _, job := range view.Jobs {
@@ -80,47 +94,9 @@ func (v *ViewItem) GetJob(name string) (*JobItem, error) {
 	return nil, nil
 }
 
-func (v *ViewItem) IncludeJob(name string) error {
-	_, err := v.Request("POST", "addJobToView", ReqParams{"name": name})
-	return err
-}
-
-func (v *ViewItem) ExcludeJob(name string) error {
-	_, err := v.Request("POST", "removeJobFromView", ReqParams{"name": name})
-	return err
-}
-
-func (v *ViewItem) GetConfigure() (string, error) {
-	resp, err := v.Request("GET", "/config.xml")
-	return resp.String(), err
-}
-
-func (v *ViewItem) SetConfigure(xml string) error {
-	_, err := v.Request("POST", "/config.xml", req.BodyXML(xml))
-	return err
-}
-
-func (v *ViewItem) Delete() error {
-	_, err := v.Request("POST", "doDelete")
-	return err
-}
-
-func (v *ViewItem) GetDescription() (string, error) {
-	data := make(map[string]string)
-	if err := v.BindAPIJson(ReqParams{"tree": "description"}, &data); err != nil {
-		return "", err
-	}
-	return data["description"], nil
-}
-
-func (v *ViewItem) SetDescription(description string) error {
-	_, err := v.Request("POST", "submitDescription", ReqParams{"description": description})
-	return err
-}
-
-func (v *ViewItem) ListJob() ([]*JobItem, error) {
+func (v *ViewService) ListJobInView(name string) ([]*JobItem, error) {
 	view := &View{}
-	if err := v.BindAPIJson(ReqParams{"tree": "jobs[name,url]"}, view); err != nil {
+	if err := v.bindViewAPIJson(name, ReqParams{"tree": "jobs[name,url]"}, view); err != nil {
 		return nil, err
 	}
 	var jobs []*JobItem

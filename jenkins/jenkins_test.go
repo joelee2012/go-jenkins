@@ -25,7 +25,6 @@ var (
 	folderConf = `<?xml version='1.0' encoding='UTF-8'?>
 <com.cloudbees.hudson.plugins.folder.Folder>
   <actions/>
-  <description></description>
   <properties/>
   <folderViews/>
   <healthMetrics/>

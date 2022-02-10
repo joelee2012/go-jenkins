@@ -58,12 +58,12 @@ func (j *JobItem) GetParent() (*JobItem, error) {
 }
 
 func (j *JobItem) GetConfigure() (string, error) {
-	resp, err := j.Request("GET", "/config.xml")
+	resp, err := j.Request("GET", "config.xml")
 	return resp.String(), err
 }
 
 func (j *JobItem) SetConfigure(xml string) error {
-	_, err := j.Request("POST", "/config.xml", req.BodyXML(xml))
+	_, err := j.Request("POST", "config.xml", req.BodyXML(xml))
 	return err
 }
 

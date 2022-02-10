@@ -7,7 +7,7 @@ import (
 )
 
 func TestViewServiceGet(t *testing.T) {
-	v, err := client.Views.Get("All")
+	v, err := client.Views.Get("all")
 	assert.Nil(t, err)
-	assert.Equal(t, v.Name, "All")
+	assert.Equal(t, v.Name, "all")
 }
