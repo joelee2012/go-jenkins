@@ -63,8 +63,8 @@ func TestBuildItemGetDescription(t *testing.T) {
 }
 
 func TestBuildItemDelete(t *testing.T) {
-	t.Skip()
 	build := setupBuild(t)
+	assert.NotNil(t, build)
 	assert.Nil(t, build.Delete())
 	build, err := pipeline.GetBuild(build.ID)
 	assert.Nil(t, err)
@@ -72,7 +72,7 @@ func TestBuildItemDelete(t *testing.T) {
 }
 
 func TestStopBuildItem(t *testing.T) {
-	t.Skip()
+	// change config
 	conf := `<?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
@@ -81,9 +81,10 @@ func TestStopBuildItem(t *testing.T) {
   </definition>
   <disabled>false</disabled>
 </flow-definition>`
+	assert.Nil(t, pipeline.SetConfigure(conf))
 
-	assert.Nil(t, folder.Create("sleep-pipeline", conf))
-	qitem, err := client.BuildJob("folder/sleep-pipeline", ReqParams{})
+	// start build to sleep 20s
+	qitem, err := pipeline.Build(ReqParams{})
 	var build *BuildItem
 	assert.Nil(t, err)
 	for {
@@ -98,5 +99,12 @@ func TestStopBuildItem(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, building)
 	assert.Nil(t, build.Stop())
-
+	building, err = build.IsBuilding()
+	assert.Nil(t, err)
+	assert.False(t, building)
+	result, err := build.GetResult()
+	assert.Nil(t, err)
+	assert.Equal(t, result, "ABORTED")
+	// revert configure
+	assert.Nil(t, pipeline.SetConfigure(jobConf))
 }
