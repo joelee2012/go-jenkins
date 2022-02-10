@@ -126,20 +126,21 @@ func TestSetDescription(t *testing.T) {
 }
 
 func TestGetBuildFunctions(t *testing.T) {
+	expect_build := setupBuild(t)
 	// test job.GetBuild
-	build, err := pipeline.GetBuild(1)
+	build, err := pipeline.GetBuild(expect_build.ID)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, build.ID)
+	assert.Equal(t, expect_build.ID, build.ID)
 
 	// test job.GetLastBuild
 	build, err = pipeline.GetLastBuild()
 	assert.Nil(t, err)
-	assert.Equal(t, 1, build.ID)
+	assert.Equal(t, expect_build.ID, build.ID)
 
 	// test job.GetLastBuild
 	build, err = pipeline.GetFirstBuild()
 	assert.Nil(t, err)
-	assert.Equal(t, 1, build.ID)
+	assert.Equal(t, expect_build.ID, build.ID)
 
 	// test for folder
 	build, err = folder.GetFirstBuild()

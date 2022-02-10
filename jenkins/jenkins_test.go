@@ -179,7 +179,7 @@ func TestBuildJob(t *testing.T) {
 	assert.Contains(t, output, os.Getenv("JENKINS_VERSION"))
 
 	// test job.GetBuild
-	build1, err := pipeline.GetBuild(1)
+	build1, err := pipeline.GetBuild(build.ID)
 	assert.Nil(t, err)
 	assert.Equal(t, build, build1)
 
