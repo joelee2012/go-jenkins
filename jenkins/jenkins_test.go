@@ -36,6 +36,29 @@ var (
 <password>user-password</password>
 <description>user id for testing</description>
 </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>`
+
+	viewConf = `<?xml version="1.1" encoding="UTF-8"?>
+<hudson.model.ListView>
+    <description>test</description>
+    <filterExecutors>false</filterExecutors>
+    <filterQueue>false</filterQueue>
+    <properties class="hudson.model.View$PropertyList"/>
+    <jobNames>
+        <comparator class="hudson.util.CaseInsensitiveComparator"/>
+    </jobNames>
+    <jobFilters/>
+    <columns>
+        <hudson.views.StatusColumn/>
+        <hudson.views.WeatherColumn/>
+        <hudson.views.JobColumn/>
+        <hudson.views.LastSuccessColumn/>
+        <hudson.views.LastFailureColumn/>
+        <hudson.views.LastDurationColumn/>
+        <hudson.views.BuildButtonColumn/>
+        <hudson.plugins.favorite.column.FavoriteColumn plugin="favorite@2.3.2"/>
+    </columns>
+    <recurse>false</recurse>
+</hudson.model.ListView>`
 )
 
 func setup() error {

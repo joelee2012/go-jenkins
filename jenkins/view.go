@@ -19,16 +19,11 @@ func NewViewService(v interface{}) *ViewService {
 }
 
 func (v *ViewService) Get(name string) (*View, error) {
-	jobJson := &Job{}
-	if err := v.BindAPIJson(ReqParams{"tree": "views[name,url,description]"}, jobJson); err != nil {
+	view := &View{}
+	if err := v.bindViewAPIJson(name, view); err != nil {
 		return nil, err
 	}
-	for _, view := range jobJson.Views {
-		if view.Name == name {
-			return view, nil
-		}
-	}
-	return nil, nil
+	return view, nil
 }
 
 func (v *ViewService) Create(name, xml string) error {
@@ -67,14 +62,14 @@ func (v *ViewService) SetDescription(name, description string) error {
 
 func (v *ViewService) List() ([]*View, error) {
 	jobJson := &Job{}
-	if err := v.BindAPIJson(ReqParams{"tree": "views[name,url]"}, jobJson); err != nil {
+	if err := v.BindAPIJson(ReqParams{"tree": "views[name,url,description]"}, jobJson); err != nil {
 		return nil, err
 	}
 	return jobJson.Views, nil
 }
 
-func (v *ViewService) bindViewAPIJson(name string, params ReqParams, o interface{}) error {
-	resp, err := v.Request("GET", "view/"+name+"/api/json", params)
+func (v *ViewService) bindViewAPIJson(name string, o interface{}) error {
+	resp, err := v.Request("GET", "view/"+name+"/api/json")
 	if err != nil {
 		return err
 	}
@@ -83,7 +78,7 @@ func (v *ViewService) bindViewAPIJson(name string, params ReqParams, o interface
 
 func (v *ViewService) GetJobFromView(name, job string) (*JobItem, error) {
 	view := &View{}
-	if err := v.bindViewAPIJson(name, ReqParams{"tree": "jobs[name,url]"}, view); err != nil {
+	if err := v.bindViewAPIJson(name, view); err != nil {
 		return nil, err
 	}
 	for _, job := range view.Jobs {
@@ -96,7 +91,7 @@ func (v *ViewService) GetJobFromView(name, job string) (*JobItem, error) {
 
 func (v *ViewService) ListJobInView(name string) ([]*JobItem, error) {
 	view := &View{}
-	if err := v.bindViewAPIJson(name, ReqParams{"tree": "jobs[name,url]"}, view); err != nil {
+	if err := v.bindViewAPIJson(name, view); err != nil {
 		return nil, err
 	}
 	var jobs []*JobItem
