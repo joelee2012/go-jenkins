@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,11 +47,23 @@ func TestViewServiceCreate(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 1)
 
+	// remove job from view
+	assert.Nil(t, folder.Views.RemoveJobFromView("testview", pipeline.Name))
+	jobs, err = folder.Views.ListJobInView("testview")
+	assert.Nil(t, err)
+	assert.Len(t, jobs, 0)
+
 	// set description
 	assert.Nil(t, folder.Views.SetDescription("testview", "new description"))
 	v, err = folder.Views.Get("testview")
 	assert.Nil(t, err)
 	assert.Equal(t, v.Description, "new description")
+
+	// set/get configuration
+	assert.Nil(t, folder.Views.SetConfigure("testview", strings.ReplaceAll(viewConf, "test", "newtest")))
+	config, err := folder.Views.GetConfigure("testview")
+	assert.Nil(t, err)
+	assert.Contains(t, config, "newtest")
 
 	// delete view
 	assert.Nil(t, folder.Views.Delete("testview"))

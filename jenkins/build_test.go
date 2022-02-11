@@ -33,7 +33,6 @@ func setupBuild(t *testing.T) *BuildItem {
 		return nil
 	})
 	assert.Nil(t, err)
-	assert.Nil(t, err)
 	assert.Contains(t, strings.Join(output, ""), os.Getenv("JENKINS_VERSION"))
 	return build
 }
@@ -85,8 +84,11 @@ func TestStopBuildItem(t *testing.T) {
 
 	// start build to sleep 20s
 	qitem, err := pipeline.Build(ReqParams{})
-	var build *BuildItem
 	assert.Nil(t, err)
+	job, err := qitem.GetJob()
+	assert.Nil(t, err)
+	assert.Equal(t, job.FullName, pipeline.FullName)
+	var build *BuildItem
 	for {
 		time.Sleep(1 * time.Second)
 		build, err = qitem.GetBuild()
