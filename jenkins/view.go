@@ -40,13 +40,13 @@ func (v *ViewService) Delete(name string) error {
 	return err
 }
 
-func (v *ViewService) AddJobToView(name, job string) error {
-	_, err := v.Request("POST", "view/"+name+"/addJobToView", ReqParams{"name": job})
+func (v *ViewService) AddJobToView(name, jobName string) error {
+	_, err := v.Request("POST", "view/"+name+"/addJobToView", ReqParams{"name": jobName})
 	return err
 }
 
-func (v *ViewService) RemoveJobFromView(name, job string) error {
-	_, err := v.Request("POST", "view/"+name+"/removeJobFromView", ReqParams{"name": job})
+func (v *ViewService) RemoveJobFromView(name, jobName string) error {
+	_, err := v.Request("POST", "view/"+name+"/removeJobFromView", ReqParams{"name": jobName})
 	return err
 }
 
@@ -81,13 +81,13 @@ func (v *ViewService) bindViewAPIJson(name string, o interface{}) error {
 	return resp.ToJSON(o)
 }
 
-func (v *ViewService) GetJobFromView(name, job string) (*JobItem, error) {
+func (v *ViewService) GetJobFromView(name, jobName string) (*JobItem, error) {
 	view := &View{}
 	if err := v.bindViewAPIJson(name, view); err != nil {
 		return nil, err
 	}
 	for _, job := range view.Jobs {
-		if job.Name == name {
+		if job.Name == jobName {
 			return NewJobItem(job.URL, job.Class, v.client), nil
 		}
 	}
