@@ -7,19 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetName(t *testing.T) {
-	assert.Equal(t, "folder", folder.GetName())
-	assert.Equal(t, "pipeline", pipeline.GetName())
-}
+func TestName(t *testing.T) {
+	assert.Equal(t, "folder", folder.Name)
+	assert.Equal(t, "folder", folder.FullName)
+	assert.Equal(t, "folder", folder.FullDisplayName)
 
-func TestGetFullDisplayName(t *testing.T) {
-	assert.Equal(t, "folder", folder.GetFullDisplayName())
-	assert.Equal(t, "folder » pipeline", pipeline.GetFullDisplayName())
-}
-
-func TestGetFullName(t *testing.T) {
-	assert.Equal(t, "folder", folder.GetFullName())
-	assert.Equal(t, "folder/pipeline", pipeline.GetFullName())
+	assert.Equal(t, "pipeline", pipeline.Name)
+	assert.Equal(t, "folder/pipeline", pipeline.FullName)
+	assert.Equal(t, "folder » pipeline", pipeline.FullDisplayName)
 }
 
 func TestRename(t *testing.T) {
@@ -28,6 +23,7 @@ func TestRename(t *testing.T) {
 	newPipeline, err := folder.Get("pipeline1")
 	assert.Nil(t, err)
 	assert.Equal(t, pipeline.URL, newPipeline.URL)
+	assert.Equal(t, pipeline.Name, newPipeline.Name)
 
 	// old job 'pipeline' should not exist
 	old, err := folder.Get("pipeline")
@@ -126,20 +122,21 @@ func TestSetDescription(t *testing.T) {
 }
 
 func TestGetBuildFunctions(t *testing.T) {
+	expect_build := setupBuild(t)
 	// test job.GetBuild
-	build, err := pipeline.GetBuild(1)
+	build, err := pipeline.GetBuild(expect_build.ID)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, build.ID)
+	assert.Equal(t, expect_build.ID, build.ID)
 
 	// test job.GetLastBuild
 	build, err = pipeline.GetLastBuild()
 	assert.Nil(t, err)
-	assert.Equal(t, 1, build.ID)
+	assert.Equal(t, expect_build.ID, build.ID)
 
 	// test job.GetLastBuild
 	build, err = pipeline.GetFirstBuild()
 	assert.Nil(t, err)
-	assert.Equal(t, 1, build.ID)
+	assert.Equal(t, expect_build.ID, build.ID)
 
 	// test for folder
 	build, err = folder.GetFirstBuild()

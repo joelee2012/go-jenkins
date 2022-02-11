@@ -11,12 +11,18 @@ import (
 
 type JobItem struct {
 	*Item
-	Credentials *CredentialService
+	Credentials     *CredentialService
+	Views           *ViewService
+	Name            string
+	FullName        string
+	FullDisplayName string
 }
 
 func NewJobItem(url, class string, client *Client) *JobItem {
 	j := &JobItem{Item: NewItem(url, class, client)}
 	j.Credentials = NewCredentialService(j)
+	j.Views = NewViewService(j)
+	j.setName()
 	return j
 }
 
@@ -27,6 +33,7 @@ func (j *JobItem) Rename(name string) error {
 	}
 	url, _ := resp.Response().Location()
 	j.URL = appendSlash(url.String())
+	j.setName()
 	return nil
 }
 
@@ -38,6 +45,7 @@ func (j *JobItem) Move(path string) error {
 	}
 	url, _ := resp.Response().Location()
 	j.URL = appendSlash(url.String())
+	j.setName()
 	return nil
 }
 
@@ -56,12 +64,12 @@ func (j *JobItem) GetParent() (*JobItem, error) {
 }
 
 func (j *JobItem) GetConfigure() (string, error) {
-	resp, err := j.Request("GET", "/config.xml")
+	resp, err := j.Request("GET", "config.xml")
 	return resp.String(), err
 }
 
 func (j *JobItem) SetConfigure(xml string) error {
-	_, err := j.Request("POST", "/config.xml", req.BodyXML(xml))
+	_, err := j.Request("POST", "config.xml", req.BodyXML(xml))
 	return err
 }
 
@@ -84,19 +92,10 @@ func (j *JobItem) IsBuildable() (bool, error) {
 	return job.Buildable, err
 }
 
-func (j *JobItem) GetName() string {
-	_, name := path.Split(strings.Trim(j.URL, "/"))
-	return name
-}
-
-func (j *JobItem) GetFullName() string {
-	fullname, _ := j.client.URL2Name(j.URL)
-	return fullname
-}
-
-func (j *JobItem) GetFullDisplayName() string {
-	fullname, _ := j.client.URL2Name(j.URL)
-	return strings.ReplaceAll(fullname, "/", " » ")
+func (j *JobItem) setName() {
+	j.FullName, _ = j.client.URL2Name(j.URL)
+	_, j.Name = path.Split(j.FullName)
+	j.FullDisplayName = strings.ReplaceAll(j.FullName, "/", " » ")
 }
 
 func (j *JobItem) GetDescription() (string, error) {
@@ -202,31 +201,31 @@ func (j *JobItem) List(depth int) ([]*JobItem, error) {
 }
 
 func (j *JobItem) GetFirstBuild() (*BuildItem, error) {
-	return j.getBuildByName("firstBuild")
+	return j.GetBuildByName("firstBuild")
 }
 func (j *JobItem) GetLastBuild() (*BuildItem, error) {
-	return j.getBuildByName("lastBuild")
+	return j.GetBuildByName("lastBuild")
 }
 func (j *JobItem) GetLastCompleteBuild() (*BuildItem, error) {
-	return j.getBuildByName("lastCompletedBuild")
+	return j.GetBuildByName("lastCompletedBuild")
 }
 func (j *JobItem) GetLastFailedBuild() (*BuildItem, error) {
-	return j.getBuildByName("lastFailedBuild")
+	return j.GetBuildByName("lastFailedBuild")
 }
 func (j *JobItem) GetLastStableBuild() (*BuildItem, error) {
-	return j.getBuildByName("lastStableBuild")
+	return j.GetBuildByName("lastStableBuild")
 }
 func (j *JobItem) GetLastUnstableBuild() (*BuildItem, error) {
-	return j.getBuildByName("lastUnstableBuild")
+	return j.GetBuildByName("lastUnstableBuild")
 }
 func (j *JobItem) GetLastSuccessfulBuild() (*BuildItem, error) {
-	return j.getBuildByName("lastSuccessfulBuild")
+	return j.GetBuildByName("lastSuccessfulBuild")
 }
 func (j *JobItem) GetLastUnsucessfulBuild() (*BuildItem, error) {
-	return j.getBuildByName("lastUnsuccessfulBuild")
+	return j.GetBuildByName("lastUnsuccessfulBuild")
 }
 
-func (j *JobItem) getBuildByName(name string) (*BuildItem, error) {
+func (j *JobItem) GetBuildByName(name string) (*BuildItem, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}

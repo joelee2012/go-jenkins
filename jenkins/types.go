@@ -33,7 +33,7 @@ type Job struct {
 	ResumeBlocked         bool           `json:"resumeBlocked"`
 	Jobs                  []*Job         `json:"jobs"`
 	PrimaryView           *PrimaryView   `json:"primaryView"`
-	Views                 []*Views       `json:"views"`
+	Views                 []*View        `json:"views"`
 }
 
 type Build struct {
@@ -181,10 +181,17 @@ type PrimaryView struct {
 	Name  string `json:"name"`
 	URL   string `json:"url"`
 }
-type Views struct {
-	Class string `json:"_class"`
-	Name  string `json:"name"`
-	URL   string `json:"url"`
+type View struct {
+	Class       string   `json:"_class"`
+	Name        string   `json:"name"`
+	URL         string   `json:"url"`
+	Description string   `json:"description"`
+	Jobs        []*Job   `json:"jobs"`
+	Property    []string `json:"property"`
+}
+
+func (v View) String() string {
+	return fmt.Sprintf("<%s: %s>", parseClass(v.Class), v.URL)
 }
 
 type HealthReport struct {
@@ -235,7 +242,7 @@ type Nodes struct {
 	URL             string           `json:"url"`
 	UseCrumbs       bool             `json:"useCrumbs"`
 	UseSecurity     bool             `json:"useSecurity"`
-	Views           []Views          `json:"views"`
+	Views           []*View          `json:"views"`
 }
 
 type AssignedLabels struct {
@@ -368,7 +375,7 @@ type Computer struct {
 }
 
 func (c Computer) String() string {
-	return fmt.Sprintf("<%s: %s>", c.Class, c.DisplayName)
+	return fmt.Sprintf("<%s: %s>", parseClass(c.Class), c.DisplayName)
 }
 
 type Queue struct {

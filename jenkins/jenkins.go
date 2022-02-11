@@ -23,6 +23,7 @@ type Client struct {
 	Credentials *CredentialService
 	Nodes       *NodeService
 	Queue       *QueueService
+	Views       *ViewService
 }
 
 type Crumb struct {
@@ -48,6 +49,7 @@ func NewClient(url, user, password string) (*Client, error) {
 	c.Credentials = NewCredentialService(c)
 	c.Nodes = NewNodeService(c)
 	c.Queue = NewQueueService(c)
+	c.Views = NewViewService(c)
 	return c, nil
 }
 

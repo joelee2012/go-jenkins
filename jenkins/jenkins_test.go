@@ -6,15 +6,17 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	client   *Client
-	folder   *JobItem
-	pipeline *JobItem
-	jobConf  = `<?xml version='1.1' encoding='UTF-8'?>
+	client    *Client
+	folder    *JobItem
+	pipeline  *JobItem
+	pipeline2 *JobItem
+	jobConf   = `<?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
     <script>echo  &quot;JENKINS_VERSION&quot;</script>
@@ -22,10 +24,30 @@ var (
   </definition>
   <disabled>false</disabled>
 </flow-definition>`
+	paramsJobConf = `<?xml version='1.1' encoding='UTF-8'?>
+	<flow-definition plugin="workflow-job">
+	  <description></description>
+	  <keepDependencies>false</keepDependencies>
+	  <properties>
+		<hudson.model.ParametersDefinitionProperty>
+		  <parameterDefinitions>
+			<hudson.model.StringParameterDefinition>
+			  <name>ARG1</name>
+			  <trim>false</trim>
+			</hudson.model.StringParameterDefinition>
+		  </parameterDefinitions>
+		</hudson.model.ParametersDefinitionProperty>
+	  </properties>
+	  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+		<script>echo params.ARG1</script>
+		<sandbox>true</sandbox>
+	  </definition>
+	  <triggers/>
+	  <disabled>false</disabled>
+	</flow-definition>`
 	folderConf = `<?xml version='1.0' encoding='UTF-8'?>
 <com.cloudbees.hudson.plugins.folder.Folder>
   <actions/>
-  <description></description>
   <properties/>
   <folderViews/>
   <healthMetrics/>
@@ -37,6 +59,29 @@ var (
 <password>user-password</password>
 <description>user id for testing</description>
 </com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>`
+
+	viewConf = `<?xml version="1.1" encoding="UTF-8"?>
+<hudson.model.ListView>
+    <description>test</description>
+    <filterExecutors>false</filterExecutors>
+    <filterQueue>false</filterQueue>
+    <properties class="hudson.model.View$PropertyList"/>
+    <jobNames>
+        <comparator class="hudson.util.CaseInsensitiveComparator"/>
+    </jobNames>
+    <jobFilters/>
+    <columns>
+        <hudson.views.StatusColumn/>
+        <hudson.views.WeatherColumn/>
+        <hudson.views.JobColumn/>
+        <hudson.views.LastSuccessColumn/>
+        <hudson.views.LastFailureColumn/>
+        <hudson.views.LastDurationColumn/>
+        <hudson.views.BuildButtonColumn/>
+        <hudson.plugins.favorite.column.FavoriteColumn plugin="favorite@2.3.2"/>
+    </columns>
+    <recurse>false</recurse>
+</hudson.model.ListView>`
 )
 
 func setup() error {
@@ -48,7 +93,7 @@ func setup() error {
 	}
 
 	jobConf = strings.ReplaceAll(jobConf, "JENKINS_VERSION", os.Getenv("JENKINS_VERSION"))
-	confs := []string{folderConf, folderConf, jobConf, jobConf}
+	confs := []string{folderConf, folderConf, jobConf, paramsJobConf}
 	names := []string{"folder", "folder/folder1", "folder/pipeline", "folder/pipeline2"}
 
 	for index, name := range names {
@@ -64,6 +109,11 @@ func setup() error {
 	}
 
 	pipeline, err = client.GetJob("folder/pipeline")
+	if err != nil {
+		return err
+	}
+
+	pipeline2, err = client.GetJob("folder/pipeline2")
 	if err != nil {
 		return err
 	}
@@ -128,7 +178,7 @@ func TestUrl2Name(t *testing.T) {
 
 func TestGetJob(t *testing.T) {
 	// check job exist
-	job, err := client.GetJob("folder/pipeline2")
+	job, err := client.GetJob(pipeline.FullName)
 	assert.Nil(t, err)
 	assert.Equal(t, job.Class, "WorkflowJob")
 
@@ -137,7 +187,7 @@ func TestGetJob(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, job)
 	// wrong path
-	job, err = client.GetJob("folder/pipeline2/notexist")
+	job, err = client.GetJob(pipeline.FullName + "/notexist")
 	assert.Nil(t, err)
 	assert.Nil(t, job)
 }
@@ -180,7 +230,7 @@ func TestBuildJob(t *testing.T) {
 	assert.Contains(t, output, os.Getenv("JENKINS_VERSION"))
 
 	// test job.GetBuild
-	build1, err := pipeline.GetBuild(1)
+	build1, err := pipeline.GetBuild(build.ID)
 	assert.Nil(t, err)
 	assert.Equal(t, build, build1)
 
@@ -193,6 +243,28 @@ func TestBuildJob(t *testing.T) {
 	build1, err = pipeline.GetFirstBuild()
 	assert.Nil(t, err)
 	assert.Equal(t, build, build1)
+}
+
+func TestBuildJobWithParameters(t *testing.T) {
+	qitem, err := client.BuildJob(pipeline2.FullName, ReqParams{"ARG1": "ARG1_VALUE"})
+	var build *BuildItem
+	assert.Nil(t, err)
+	for {
+		time.Sleep(1 * time.Second)
+		build, err = qitem.GetBuild()
+		assert.Nil(t, err)
+		if build != nil {
+			break
+		}
+	}
+	var output []string
+	err = build.LoopProgressiveLog("text", func(line string) error {
+		output = append(output, line)
+		time.Sleep(1 * time.Second)
+		return nil
+	})
+	assert.Nil(t, err)
+	assert.Contains(t, strings.Join(output, ""), "ARG1_VALUE")
 }
 
 func TestSystemCredentials(t *testing.T) {
