@@ -32,13 +32,13 @@ func TestViewServiceCreate(t *testing.T) {
 	assert.Len(t, views, 2)
 
 	// get job from view
-	job, err := folder.Views.GetJobFromView("testview", "pipeline")
+	job, err := folder.Views.GetJobFromView("testview", pipeline.Name)
 	assert.Nil(t, err)
 	assert.Nil(t, job)
 
 	// add job to view
-	assert.Nil(t, folder.Views.AddJobToView("testview", "pipeline"))
-	job, err = folder.Views.GetJobFromView("testview", "pipeline")
+	assert.Nil(t, folder.Views.AddJobToView("testview", pipeline.Name))
+	job, err = folder.Views.GetJobFromView("testview", pipeline.Name)
 	assert.Nil(t, err)
 	assert.Equal(t, job.FullName, pipeline.FullName)
 
