@@ -19,11 +19,16 @@ func NewViewService(v interface{}) *ViewService {
 }
 
 func (v *ViewService) Get(name string) (*View, error) {
-	view := &View{}
-	if err := v.bindViewAPIJson(name, view); err != nil {
+	jobJson := &Job{}
+	if err := v.BindAPIJson(ReqParams{"tree": "views[name,url,description]"}, jobJson); err != nil {
 		return nil, err
 	}
-	return view, nil
+	for _, view := range jobJson.Views {
+		if view.Name == name {
+			return view, nil
+		}
+	}
+	return nil, nil
 }
 
 func (v *ViewService) Create(name, xml string) error {
