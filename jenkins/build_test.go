@@ -36,6 +36,7 @@ func setupBuild(t *testing.T) *BuildItem {
 	assert.Contains(t, strings.Join(output, ""), os.Getenv("JENKINS_VERSION"))
 	return build
 }
+
 func TestBuildItemIsBuilding(t *testing.T) {
 	build := setupBuild(t)
 	building, err := build.IsBuilding()

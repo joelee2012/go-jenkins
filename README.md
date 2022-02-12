@@ -46,7 +46,7 @@ func main() {
 	if err := client.CreateJob("pipeline", xml); err != nil {
 		log.Fatalln(err)
 	}
-	qitem, err := client.BuildJob("pipeline", jenkins.ReqParams{})
+	qitem, err := client.BuildJob("pipeline", nil)
 	if err != nil {
 		log.Fatalln(err)
 	}
