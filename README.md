@@ -4,8 +4,10 @@
 ![GitHub](https://img.shields.io/github/license/joelee2012/go-jenkins)
 
 # go-jenkins
-[Golang](https://golang.org/) client library for [Jenkins API](https://wiki.jenkins.io/display/JENKINS/Remote+access+API).
-> Ported from [api4jenkins](https://github.com/joelee2012/api4jenkins>), a [Python3](https://www.python.org/) client library for [Jenkins API](https://wiki.jenkins.io/display/JENKINS/Remote+access+API).
+[Golang](https://golang.org/) client library for [Jenkins API](https://www.jenkins.io/doc/book/using/remote-access-api/).
+> Ported from [api4jenkins](https://github.com/joelee2012/api4jenkins>), a [Python3](https://www.python.org/) client library for [Jenkins API](https://www.jenkins.io/doc/book/using/remote-access-api/).
+
+# Features
 
 # Usage
 
