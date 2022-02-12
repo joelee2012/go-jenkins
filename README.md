@@ -28,21 +28,21 @@ func main() {
 	<flow-definition plugin="workflow-job">
 	  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
 		<script>#!groovy
-	pipeline {
-	  agent any
-	  stages {
-		stage('build'){
-		  steps{
-			sh 'echo $JENKINS_VERSION'
-		  }
-		}
-	  }
-	}</script>
+			pipeline {
+			agent any
+			stages {
+				stage('build'){
+				steps{
+					sh 'echo $JENKINS_VERSION'
+				}
+				}
+			}
+			}</script>
 		<sandbox>true</sandbox>
 	  </definition>
 	  <disabled>false</disabled>
 	</flow-definition>`
-  // create jenkins job
+  	// create jenkins job
 	if err := client.CreateJob("pipeline", xml); err != nil {
 		log.Fatalln(err)
 	}
