@@ -3,6 +3,7 @@ package jenkins
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"path"
 	"strings"
 
@@ -93,9 +94,10 @@ func (j *JobItem) IsBuildable() (bool, error) {
 }
 
 func (j *JobItem) setName() {
-	j.FullName, _ = j.client.URL2Name(j.URL)
+	urlPath, _ := j.client.URL2Name(j.URL)
+	j.FullName, _ = url.PathUnescape(urlPath)
 	_, j.Name = path.Split(j.FullName)
-	j.FullDisplayName = strings.ReplaceAll(j.FullName, "/", " » ")
+	j.FullDisplayName, _ = url.PathUnescape(strings.ReplaceAll(j.FullName, "/", " » "))
 }
 
 func (j *JobItem) GetDescription() (string, error) {
