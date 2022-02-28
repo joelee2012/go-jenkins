@@ -7,100 +7,87 @@
 [Golang](https://golang.org/) client library for accessing [Jenkins API](https://www.jenkins.io/doc/book/using/remote-access-api/).
 > Ported from [api4jenkins](https://github.com/joelee2012/api4jenkins>), a [Python3](https://www.python.org/) client library for [Jenkins API](https://www.jenkins.io/doc/book/using/remote-access-api/).
 
+# Features
+This API client package covers most of the existing Jenkins API calls and is updated regularly to add new and/or missing endpoints.
 
+Currently, the following are supported:
+
+- Job
+- Build
+- Credential
+- View
+- Queue
+- Node
 
 # Usage
 
 ```go
-import "github.com/joelee2012/go-jenkins/jenkins"
+import "github.com/joelee2012/go-jenkins"
 ```
 
-## Client
-Construct new client
+## Example
 ```go
-client, err := jenkins.NewClient("http://localhost:8080/", "admin", "1234")
-if err != nil {
-	log.Fatalln(err)
-}
-```
+package main
 
-Create Job with given xml configuration
-```go
-xml := `<?xml version='1.1' encoding='UTF-8'?>
-<flow-definition plugin="workflow-job">
-	<definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
-	<script>#!groovy
-		pipeline {
-		agent any
-		stages {
-			stage('build'){
-			steps{
-				sh 'echo $JENKINS_VERSION'
-			}
-			}
-		}
-		}</script>
-	<sandbox>true</sandbox>
-	</definition>
-	<disabled>false</disabled>
-</flow-definition>`
-// create jenkins job
-if err := client.CreateJob("pipeline", xml); err != nil {
-	log.Fatalln(err)
-}
-```
+import (
+	"log"
+	"time"
 
-Build Job and get BuildItem
-```go
-qitem, err := client.BuildJob("pipeline", nil)
-if err != nil {
-	log.Fatalln(err)
-}
-var build *Build
-for {
-	time.Sleep(1 * time.Second)
-	build, err = qitem.GetBuild()
+	"github.com/joelee2012/go-jenkins"
+)
+
+func main() {
+	// Construct new client
+	client, err := jenkins.NewClient("http://localhost:8080/", "admin", "1234")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	if build != nil {
-		break
+	xml := `<?xml version='1.1' encoding='UTF-8'?>
+	<flow-definition plugin="workflow-job">
+		<definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+		<script>#!groovy
+			pipeline {
+			agent any
+			stages {
+				stage('build'){
+				steps{
+					sh 'echo $JENKINS_VERSION'
+				}
+				}
+			}
+			}</script>
+		<sandbox>true</sandbox>
+		</definition>
+		<disabled>false</disabled>
+	</flow-definition>`
+	// create jenkins job
+	if err := client.CreateJob("pipeline", xml); err != nil {
+		log.Fatalln(err)
 	}
-}
-
-```
-
-Tail the build log to end
-```go
-build.LoopProgressiveLog("text", func(line string) error {
-	log.Println(line)
-	time.Sleep(1 * time.Second)
-	return nil
-})
-```
-
-Get Job with full name
-```go
-job, err := client.GetJob("path/to/name")
-if err != nil {
-	log.Fatalln(err)
-}
-```
-
-List job with depth
-```go
-jobs, err := client.ListJobs(1)
-if err != nil {
-	log.Fatalln(err)
+	// Build Job and get BuildItem
+	qitem, err := client.BuildJob("pipeline", nil)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	var build *Build
+	for {
+		time.Sleep(1 * time.Second)
+		build, err = qitem.GetBuild()
+		if err != nil {
+			log.Fatalln(err)
+		}
+		if build != nil {
+			break
+		}
+	}
+	// tail the build log to end
+	build.LoopProgressiveLog("text", func(line string) error {
+		log.Println(line)
+		time.Sleep(1 * time.Second)
+		return nil
+	})
 }
 ```
 
-## JobItem
-Rename job
-
-```go
-if err := job.Rename("new name"); err != nil {
-	log.Fatalln(err)
-}
-```
-
+# Documentation
+See https://pkg.go.dev/github.com/joelee2012/go-jenkins
