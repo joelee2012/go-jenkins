@@ -3,6 +3,7 @@ package jenkins
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"path"
 	"strings"
 
@@ -93,9 +94,10 @@ func (j *JobItem) IsBuildable() (bool, error) {
 }
 
 func (j *JobItem) setName() {
-	j.FullName, _ = j.client.URL2Name(j.URL)
+	urlPath, _ := j.client.URL2Name(j.URL)
+	j.FullName, _ = url.PathUnescape(urlPath)
 	_, j.Name = path.Split(j.FullName)
-	j.FullDisplayName = strings.ReplaceAll(j.FullName, "/", " » ")
+	j.FullDisplayName, _ = url.PathUnescape(strings.ReplaceAll(j.FullName, "/", " » "))
 }
 
 func (j *JobItem) GetDescription() (string, error) {
@@ -146,7 +148,7 @@ func (j *JobItem) GetBuild(number int) (*BuildItem, error) {
 
 	for _, build := range jobJson.Builds {
 		if number == build.Number {
-			return NewBuildItem(build.URL, parseClass(build.Class), j.client), nil
+			return NewBuildItem(build.URL, build.Class, j.client), nil
 		}
 	}
 	return nil, nil
@@ -259,7 +261,41 @@ func (j *JobItem) ListBuilds() ([]*BuildItem, error) {
 	}
 
 	for _, build := range jobJson.Builds {
-		builds = append(builds, NewBuildItem(build.URL, parseClass(build.Class), j.client))
+		builds = append(builds, NewBuildItem(build.URL, build.Class, j.client))
 	}
 	return builds, nil
+}
+
+func (j *JobItem) SetNextBuildNumber(number int) error {
+	_, err := j.Request("POST", "nextbuildnumber/submit", ReqParams{"nextBuildNumber": number})
+	return err
+}
+
+func (j *JobItem) GetParameters() ([]*ParameterDefinition, error) {
+	jobJson := &Job{}
+	if err := j.BindAPIJson(nil, jobJson); err != nil {
+		return nil, err
+	}
+	for _, p := range jobJson.Property {
+		if p.Class == "hudson.model.ParametersDefinitionProperty" {
+			return p.ParameterDefinitions, nil
+		}
+	}
+	return nil, nil
+}
+
+func (j *JobItem) SCMPolling() error {
+	_, err := j.Request("POST", "polling")
+	return err
+}
+
+func (j *JobItem) GetMultibranchPipelineScanLog() (string, error) {
+	if j.Class != "WorkflowMultiBranchProject" {
+		return "", fmt.Errorf("%s is not a WorkflowMultiBranchProject", j)
+	}
+	resp, err := j.Request("POST", "indexing/consoleText")
+	if err != nil {
+		return "", err
+	}
+	return resp.String(), nil
 }

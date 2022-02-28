@@ -27,7 +27,7 @@ type Job struct {
 	LastUnstableBuild     *Build         `json:"lastUnstableBuild"`
 	LastUnsuccessfulBuild *Build         `json:"lastUnsuccessfulBuild"`
 	NextBuildNumber       int            `json:"nextBuildNumber"`
-	Property              []Property     `json:"property"`
+	Property              []*Property    `json:"property"`
 	QueueItem             interface{}    `json:"queueItem"`
 	ConcurrentBuild       bool           `json:"concurrentBuild"`
 	ResumeBlocked         bool           `json:"resumeBlocked"`
@@ -206,7 +206,7 @@ type DefaultParameterValue struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
-type ParameterDefinitions struct {
+type ParameterDefinition struct {
 	Class                 string                `json:"_class"`
 	DefaultParameterValue DefaultParameterValue `json:"defaultParameterValue"`
 	Description           string                `json:"description"`
@@ -216,7 +216,7 @@ type ParameterDefinitions struct {
 }
 type Property struct {
 	Class                string                 `json:"_class"`
-	ParameterDefinitions []ParameterDefinitions `json:"parameterDefinitions,omitempty"`
+	ParameterDefinitions []*ParameterDefinition `json:"parameterDefinitions,omitempty"`
 }
 
 type ComputerSet struct {
