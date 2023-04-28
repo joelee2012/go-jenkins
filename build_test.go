@@ -48,7 +48,7 @@ func TestBuildItemGetJob(t *testing.T) {
 	build := setupBuild(t)
 	job, err := build.GetJob()
 	assert.Nil(t, err)
-	assert.Equal(t, job.URL, pipeline.URL)
+	assert.Equal(t, job.BaseURL, pipeline.BaseURL)
 }
 
 func TestBuildItemGetDescription(t *testing.T) {

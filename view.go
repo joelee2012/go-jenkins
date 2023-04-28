@@ -13,7 +13,7 @@ func NewViewService(v interface{}) *ViewService {
 		return &ViewService{Item: NewItem(c.URL, "Views", c)}
 	}
 	if c, ok := v.(*JobItem); ok {
-		return &ViewService{Item: NewItem(c.URL, "Views", c.client)}
+		return &ViewService{Item: NewItem(c.BaseURL, "Views", c.client)}
 	}
 	return nil
 }

@@ -2,20 +2,25 @@ package jenkins
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"net/http"
 	"path"
 	"strings"
 
-	"github.com/imroc/req"
+	"github.com/imroc/req/v3"
 )
 
+type APIError struct {
+	Message          string `json:"message"`
+	DocumentationUrl string `json:"documentation_url"`
+}
+
+func (e *APIError) Error() string {
+	return fmt.Sprintf("API Error: %s (refer to %s)", e.Message, e.DocumentationUrl)
+}
+
 type Client struct {
-	URL         string
-	Header      http.Header
-	Crumb       *Crumb
-	Req         *req.Req
+	Crumb *Crumb
+	*req.Client
 	ctx         *context.Context
 	Credentials *CredentialService
 	Nodes       *NodeService
@@ -29,73 +34,89 @@ type Crumb struct {
 }
 
 // Init Jenkins client and create job to build
-// 		package main
 //
-// 		import (
-// 			"log"
-// 			"time"
+//	package main
 //
-// 			"github.com/joelee2012/go-jenkins/jenkins"
-// 		)
+//	import (
+//		"log"
+//		"time"
 //
-// 		func main() {
-// 			client, err := jenkins.NewClient("http://localhost:8080/", "admin", "1234")
-// 			if err != nil {
-// 				log.Fatalln(err)
-// 			}
-// 			xml := `<?xml version='1.1' encoding='UTF-8'?>
-// 			<flow-definition plugin="workflow-job">
-// 			  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
-// 				<script>#!groovy
-// 					pipeline {
-// 					agent any
-// 					stages {
-// 						stage('build'){
-// 						steps{
-// 							sh 'echo $JENKINS_VERSION'
-// 						}
-// 						}
-// 					}
-// 					}</script>
-// 				<sandbox>true</sandbox>
-// 			  </definition>
-// 			  <disabled>false</disabled>
-// 			</flow-definition>`
-// 		  	// create jenkins job
-// 			if err := client.CreateJob("pipeline", xml); err != nil {
-// 				log.Fatalln(err)
-// 			}
-// 			qitem, err := client.BuildJob("pipeline", nil)
-// 			if err != nil {
-// 				log.Fatalln(err)
-// 			}
-// 			var build *Build
-// 			for {
-// 				time.Sleep(1 * time.Second)
-// 				build, err = qitem.GetBuild()
-// 				if err != nil {
-// 					log.Fatalln(err)
-// 				}
-// 				if build != nil {
-// 					break
-// 				}
-// 			}
-// 			// tail the build log to end
-// 			build.LoopProgressiveLog("text", func(line string) error {
-// 				log.Println(line)
-// 				time.Sleep(1 * time.Second)
-// 				return nil
-// 			})
-// 		}
+//		"github.com/joelee2012/go-jenkins/jenkins"
+//	)
+//
+//	func main() {
+//		client, err := jenkins.NewClient("http://localhost:8080/", "admin", "1234")
+//		if err != nil {
+//			log.Fatalln(err)
+//		}
+//		xml := `<?xml version='1.1' encoding='UTF-8'?>
+//		<flow-definition plugin="workflow-job">
+//		  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+//			<script>#!groovy
+//				pipeline {
+//				agent any
+//				stages {
+//					stage('build'){
+//					steps{
+//						sh 'echo $JENKINS_VERSION'
+//					}
+//					}
+//				}
+//				}</script>
+//			<sandbox>true</sandbox>
+//		  </definition>
+//		  <disabled>false</disabled>
+//		</flow-definition>`
+//	  	// create jenkins job
+//		if err := client.CreateJob("pipeline", xml); err != nil {
+//			log.Fatalln(err)
+//		}
+//		qitem, err := client.BuildJob("pipeline", nil)
+//		if err != nil {
+//			log.Fatalln(err)
+//		}
+//		var build *Build
+//		for {
+//			time.Sleep(1 * time.Second)
+//			build, err = qitem.GetBuild()
+//			if err != nil {
+//				log.Fatalln(err)
+//			}
+//			if build != nil {
+//				break
+//			}
+//		}
+//		// tail the build log to end
+//		build.LoopProgressiveLog("text", func(line string) error {
+//			log.Println(line)
+//			time.Sleep(1 * time.Second)
+//			return nil
+//		})
+//	}
 func NewClient(url, user, password string) (*Client, error) {
-	url = appendSlash(url)
-	c := &Client{URL: url, Header: make(http.Header), Req: req.New()}
+	reqClient := req.NewClient()
 	// disable redirect for Job.Rename() and Move()
-	c.Req.Client().CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
+	reqClient.SetBaseURL(url).
+		SetRedirectPolicy(req.NoRedirectPolicy()).
+		SetCommonBasicAuth(user, password).
+		SetCommonHeader("Accept", "application/json").
+		SetCommonError(&APIError{}).
+		OnAfterResponse(func(client *req.Client, resp *req.Response) error {
+			if err, ok := resp.Error().(*APIError); ok {
+				resp.Err = err
+				return err
+			}
+
+			if !resp.IsSuccess() {
+				resp.Err = fmt.Errorf("bad response, raw content:\n%s", resp.Dump())
+				return nil
+			}
+			return nil
+		})
+	c := &Client{
+		Crumb:  &Crumb{},
+		Client: reqClient,
 	}
-	c.SetBasicAuth(user, password)
-	c.SetContentType("")
 	c.Credentials = NewCredentialService(c)
 	c.Nodes = NewNodeService(c)
 	c.Queue = NewQueueService(c)
@@ -103,73 +124,52 @@ func NewClient(url, user, password string) (*Client, error) {
 	return c, nil
 }
 
-// Set content type for request, default is 'application/json'
-func (c *Client) SetContentType(ctype string) {
-	if ctype == "" {
-		c.Header.Set("Accept", "application/json")
-	} else {
-		c.Header.Set("Accept", ctype)
-	}
-}
-
-func (c *Client) SetBasicAuth(username, password string) {
-	auth := username + ":" + password
-	c.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
-}
-
 func (c *Client) GetCrumb() (*Crumb, error) {
 	if c.Crumb != nil {
 		return c.Crumb, nil
 	}
-	resp, err := c.Req.Get(c.URL+"crumbIssuer/api/json", c.Header)
-	if err != nil {
-		return nil, err
-	}
-	if resp.Response().StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s: %s", resp.Response().Status, c.URL+"crumbIssuer/api/json")
-	}
-	if err := resp.ToJSON(&c.Crumb); err != nil {
-		return nil, err
-	}
-	c.Header.Set(c.Crumb.RequestFields, c.Crumb.Value)
-	return c.Crumb, nil
+	_, err := c.R().SetResult(&c.Crumb).Get("crumbIssuer/api/json")
+	c.SetCommonHeader(c.Crumb.RequestFields, c.Crumb.Value)
+	return c.Crumb, err
 }
 
 // Get job with fullname:
-// 		job, err := client.GetJob("path/to/job")
-//		if err != nil {
-// 			return err
-// 		}
-// 		fmt.Println(job)
+//
+//	job, err := client.GetJob("path/to/job")
+//	if err != nil {
+//		return err
+//	}
+//	fmt.Println(job)
 func (c *Client) GetJob(fullName string) (*JobItem, error) {
 	folder, shortName := c.resolveJob(fullName)
 	return folder.Get(shortName)
 }
 
 // Create job with given xml config:
-// 		xml := `<?xml version='1.1' encoding='UTF-8'?>
-// 		<flow-definition plugin="workflow-job">
-// 		  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
-// 			 <script>#!groovy
-// 				pipeline {
-// 				  agent any
-// 				  stages {
-// 				    stage('build'){
-// 					  steps{
-// 					    echo "test message"
-// 					  }
-// 				    }
-// 				  }
-// 				}
-// 		    </script>
-// 			<sandbox>true</sandbox>
-// 		  </definition>
-// 		  <disabled>false</disabled>
-// 		</flow-definition>`
-// 		// create jenkins job
-// 		if err := client.CreateJob("path/to/name", xml); err != nil {
-// 			log.Fatalln(err)
-// 		}
+//
+//	xml := `<?xml version='1.1' encoding='UTF-8'?>
+//	<flow-definition plugin="workflow-job">
+//	  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+//		 <script>#!groovy
+//			pipeline {
+//			  agent any
+//			  stages {
+//			    stage('build'){
+//				  steps{
+//				    echo "test message"
+//				  }
+//			    }
+//			  }
+//			}
+//	    </script>
+//		<sandbox>true</sandbox>
+//	  </definition>
+//	  <disabled>false</disabled>
+//	</flow-definition>`
+//	// create jenkins job
+//	if err := client.CreateJob("path/to/name", xml); err != nil {
+//		log.Fatalln(err)
+//	}
 func (c *Client) CreateJob(fullName, xml string) error {
 	folder, shortName := c.resolveJob(fullName)
 	return folder.Create(shortName, xml)
@@ -180,7 +180,7 @@ func (c *Client) DeleteJob(fullName string) error {
 }
 
 func (c *Client) String() string {
-	return fmt.Sprintf("<Jenkins: %s>", c.URL)
+	return fmt.Sprintf("<Jenkins: %s>", c.BaseURL)
 }
 
 func (c *Client) resolveJob(fullName string) (*JobItem, string) {
@@ -190,130 +190,106 @@ func (c *Client) resolveJob(fullName string) (*JobItem, string) {
 }
 
 // Covert fullname to url, eg:
-//		path/to/name -> http://jenkins/job/path/job/to/job/name
+//
+//	path/to/name -> http://jenkins/job/path/job/to/job/name
 func (c *Client) Name2URL(fullName string) string {
 	if fullName == "" {
-		return c.URL
+		return c.BaseURL
 	}
 	path := strings.ReplaceAll(strings.Trim(fullName, "/"), "/", "/job/")
-	return appendSlash(c.URL + "job/" + path)
+	return appendSlash(c.BaseURL + "job/" + path)
 }
 
 // Covert url to full name, eg:
-// 		http://jenkins/job/path/job/to/job/name -> path/to/name
+//
+//	http://jenkins/job/path/job/to/job/name -> path/to/name
 func (c *Client) URL2Name(url string) (string, error) {
-	if !strings.HasPrefix(url, c.URL) {
-		return "", fmt.Errorf("%s is not in %s", url, c.URL)
+	if !strings.HasPrefix(url, c.BaseURL) {
+		return "", fmt.Errorf("%s is not in %s", url, c.BaseURL)
 	}
-	path := strings.ReplaceAll(url, c.URL, "/")
+	path := strings.ReplaceAll(url, c.BaseURL, "/")
 	return strings.Trim(strings.ReplaceAll(path, "/job/", "/"), "/"), nil
 }
 
 // Get jenkins version number
 func (c *Client) GetVersion() (string, error) {
-	resp, err := c.Req.Get(c.URL)
+	resp, err := c.R().Get("")
 	if err != nil {
 		return "", err
 	}
-	return resp.Response().Header.Get("X-Jenkins"), nil
+	return resp.Header.Get("X-Jenkins"), nil
 }
 
 // Trigger job to build:
-//		// without parameters
-//		client.BuildJob("your job", nil)
-//		client.BuildJob("your job", jenkins.ReqParams{})
-//		// with parameters
-//		client.BuildJob("your job", jenkins.ReqParams{"ARG1": "ARG1_VALUE"})
-func (c *Client) BuildJob(fullName string, params ReqParams) (*OneQueueItem, error) {
+//
+//	// without parameters
+//	client.BuildJob("your job", nil)
+//	client.BuildJob("your job", jenkins.ReqParams{})
+//	// with parameters
+//	client.BuildJob("your job", jenkins.ReqParams{"ARG1": "ARG1_VALUE"})
+func (c *Client) BuildJob(fullName string, params map[string]string) (*OneQueueItem, error) {
 	return NewJobItem(c.Name2URL(fullName), "Job", c).Build(params)
 }
 
 // List job with depth
 func (c *Client) ListJobs(depth int) ([]*JobItem, error) {
-	job := NewJobItem(c.URL, "Folder", c)
+	job := NewJobItem(c.BaseURL, "Folder", c)
 	return job.List(depth)
 }
 
-// Send request to jenkins,
-//		// send request to get JSON data of jenkins
-//		client.Request("GET", "api/json")
-func (c *Client) Request(method, entry string, v ...interface{}) (*req.Resp, error) {
-	return c.Do(method, c.URL+entry, v...)
-}
-
-func (c *Client) Do(method, url string, v ...interface{}) (*req.Resp, error) {
-	if _, err := c.GetCrumb(); err != nil {
-		return nil, err
-	}
-	v = append(v, c.Header)
-	resp, err := c.Req.Do(method, url, v...)
-	if err != nil {
-		return nil, err
-	}
-	if resp.Response().StatusCode >= 400 {
-		return nil, fmt.Errorf("%s: %s", resp.Response().Status, url)
-	}
-	return resp, nil
-}
-
 func (c *Client) Restart() error {
-	_, err := c.Request("POST", "restart")
+	_, err := c.R().Post("restart")
 	return err
 }
 
 func (c *Client) SafeRestart() error {
-	_, err := c.Request("POST", "safeRestart")
+	_, err := c.R().Post("safeRestart")
 	return err
 }
 
 func (c *Client) Exit() error {
-	_, err := c.Request("POST", "exit")
+	_, err := c.R().Post("exit")
 	return err
 }
 
 func (c *Client) SafeExit() error {
-	_, err := c.Request("POST", "safeExit")
+	_, err := c.R().Post("safeExit")
 	return err
 }
 
 func (c *Client) QuiteDown() error {
-	_, err := c.Request("POST", "quietDown")
+	_, err := c.R().Post("quietDown")
 	return err
 }
 
 func (c *Client) CancelQuiteDown() error {
-	_, err := c.Request("POST", "cancelQuietDown")
+	_, err := c.R().Post("cancelQuietDown")
 	return err
 }
 
 func (c *Client) ReloadJCasC() error {
-	_, err := c.Request("POST", "configuration-as-code/reload")
+	_, err := c.R().Post("configuration-as-code/reload")
 	return err
 }
 
 func (c *Client) ExportJCasC(name string) error {
-	resp, err := c.Request("POST", "configuration-as-code/export")
-	if err != nil {
-		return err
-	}
-	return resp.ToFile(name)
+	_, err := c.R().SetOutputFile(name).Get("configuration-as-code/export")
+	return err
 }
 
 // Bind jenkins JSON data to interface,
-//		// bind json data to map
-//		data := make(map[string]string)
-//		client.BindAPIJson(jenkins.ReqParams{"tree":"description"}, &data)
-//		fmt.Println(data["description"])
-func (c *Client) BindAPIJson(params ReqParams, v interface{}) error {
-	resp, err := c.Request("GET", "api/json", params)
-	if err != nil {
-		return err
-	}
-	return resp.ToJSON(v)
+//
+//	// bind json data to map
+//	data := make(map[string]string)
+//	client.BindAPIJson(jenkins.ReqParams{"tree":"description"}, &data)
+//	fmt.Println(data["description"])
+func (c *Client) BindAPIJson(params map[string]string, v interface{}) error {
+	_, err := c.R().SetQueryParams(params).SetResult(v).Get("api/json")
+	return err
 }
 
 func (c *Client) ValidateJenkinsfile(content string) (string, error) {
-	resp, err := c.Request("POST", "pipeline-model-converter/validate", ReqParams{"jenkinsfile": content})
+	resp, err := c.R().SetQueryParam("jenkinsfile", content).Post("pipeline-model-converter/validate")
 	if err != nil {
 		return "", err
 	}
@@ -321,14 +297,9 @@ func (c *Client) ValidateJenkinsfile(content string) (string, error) {
 }
 
 func (c *Client) RunScript(script string) (string, error) {
-	resp, err := c.Request("POST", "scriptText", ReqParams{"script": script})
+	resp, err := c.R().SetQueryParam("script", script).Post("scriptText")
 	if err != nil {
 		return "", err
 	}
 	return resp.String(), nil
-}
-
-func (c *Client) WithContext(ctx context.Context) *Client {
-	c.ctx = &ctx
-	return c
 }

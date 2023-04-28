@@ -14,38 +14,27 @@ import (
 )
 
 type Item struct {
-	URL    string
-	Class  string
-	client *Client
+	BaseURL string
+	Class   string
+	*Client
 }
 
-type ReqParams = req.Param
 
 func NewItem(url, class string, client *Client) *Item {
 	url = appendSlash(url)
-	return &Item{URL: url, Class: parseClass(class), client: client}
+	return &Item{BaseURL: url, Class: parseClass(class), Client: client}
 }
 
-func (i *Item) BindAPIJson(params ReqParams, v interface{}) error {
-	resp, err := i.Request("GET", "api/json", params)
-	if err != nil {
-		return err
-	}
-	return resp.ToJSON(v)
+func (i *Item) BindAPIJson(params map[string]string, v interface{}) error {
+	_, err := i.R().SetQueryParams(params).SetResult(v).Get("api/json")
+	return err
 }
 
-func (i *Item) Request(method, entry string, vs ...interface{}) (*req.Resp, error) {
-	return i.client.Do(method, i.URL+entry, vs...)
-}
 
 func (i *Item) String() string {
-	return fmt.Sprintf("<%s: %s>", i.Class, i.URL)
+	return fmt.Sprintf("<%s: %s>", i.Class, i.BaseURL)
 }
 
-func (i *Item) WithContext(ctx context.Context) *Item {
-	i.client.WithContext(ctx)
-	return i
-}
 
 var delimeter = regexp.MustCompile(`\w+$`)
 

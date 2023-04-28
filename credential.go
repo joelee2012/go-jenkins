@@ -14,7 +14,7 @@ func NewCredentialService(v interface{}) *CredentialService {
 	}
 
 	if c, ok := v.(*JobItem); ok {
-		return &CredentialService{Item: NewItem(c.URL+"credentials/store/folder/domain/_/", "Credentials", c.client)}
+		return &CredentialService{Item: NewItem(c.BaseURL+"credentials/store/folder/domain/_/", "Credentials", c.client)}
 	}
 	return nil
 }

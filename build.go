@@ -6,21 +6,23 @@ import (
 )
 
 type BuildItem struct {
-	*Item
-	ID int
+	*Client
+	BaseURL string
+	Class   string
+	ID      int
 }
 
 func NewBuildItem(url, class string, client *Client) *BuildItem {
-	return &BuildItem{Item: NewItem(url, class, client), ID: parseId(url)}
+	return &BuildItem{Client: client, BaseURL: url, Class: class, ID: parseId(url)}
 }
 
 func (b *BuildItem) LoopLog(f func(line string) error) error {
-	resp, err := b.Request("GET", "consoleText", ReqParams{})
+	resp, err := b.R().Get("consoleText")
 	if err != nil {
 		return err
 	}
-	defer resp.Response().Body.Close()
-	scanner := bufio.NewScanner(resp.Response().Body)
+	defer resp.Body.Close()
+	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		if err := f(scanner.Text()); err != nil {
 			return err
@@ -33,45 +35,50 @@ func (b *BuildItem) LoopLog(f func(line string) error) error {
 	return nil
 }
 
+func (b *BuildItem) BindAPIJson(params map[string]string, v interface{}) error {
+	_, err := b.R().SetQueryParams(params).SetSuccessResult(v).Get("api/json")
+	return err
+}
+
 func (b *BuildItem) IsBuilding() (bool, error) {
 	var build struct {
 		Class    string `json:"_class"`
 		Building bool   `json:"building"`
 	}
-	err := b.BindAPIJson(ReqParams{"tree": "building"}, &build)
+	err := b.BindAPIJson(map[string]string{"tree": "building"}, &build)
 	return build.Building, err
 }
 
 func (b *BuildItem) GetResult() (string, error) {
 	status := make(map[string]string)
-	err := b.BindAPIJson(ReqParams{"tree": "result"}, &status)
+	err := b.BindAPIJson(map[string]string{"tree": "result"}, &status)
 	return status["result"], err
 }
 
 func (b *BuildItem) Delete() error {
-	_, err := b.Request("POST", "doDelete")
+	_, err := b.R().Post("doDelete")
 	return err
 }
 
 func (b *BuildItem) Stop() error {
-	_, err := b.Request("POST", "stop")
+	_, err := b.R().Post("stop")
 	return err
 }
 
 func (b *BuildItem) Kill() error {
-	_, err := b.Request("POST", "kill")
+	_, err := b.R().Post("kill")
 	return err
 }
 
 func (b *BuildItem) Term() error {
-	_, err := b.Request("POST", "term")
+	_, err := b.R().Post("term")
 	return err
 }
 
 var re = regexp.MustCompile(`\w+[/]?$`)
 
 func (b *BuildItem) GetJob() (*JobItem, error) {
-	jobName, _ := b.client.URL2Name(re.ReplaceAllLiteralString(b.URL, ""))
+	jobName, _ := b.client.URL2Name(re.ReplaceAllLiteralString(b.BaseURL, ""))
 	return b.client.GetJob(jobName)
 }
 
