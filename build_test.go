@@ -16,7 +16,7 @@ func setupBuild(t *testing.T) *BuildItem {
 	if build != nil {
 		return build
 	}
-	qitem, err := pipeline.Build(ReqParams{})
+	qitem, err := pipeline.Build(map[string]string{})
 	assert.Nil(t, err)
 	for {
 		time.Sleep(1 * time.Second)
@@ -48,7 +48,7 @@ func TestBuildItemGetJob(t *testing.T) {
 	build := setupBuild(t)
 	job, err := build.GetJob()
 	assert.Nil(t, err)
-	assert.Equal(t, job.BaseURL, pipeline.BaseURL)
+	assert.Equal(t, job.URL, pipeline.URL)
 }
 
 func TestBuildItemGetDescription(t *testing.T) {
@@ -84,7 +84,7 @@ func TestStopBuildItem(t *testing.T) {
 	assert.Nil(t, pipeline.SetConfigure(conf))
 
 	// start build to sleep 20s
-	qitem, err := pipeline.Build(ReqParams{})
+	qitem, err := pipeline.Build(map[string]string{})
 	assert.Nil(t, err)
 	job, err := qitem.GetJob()
 	assert.Nil(t, err)

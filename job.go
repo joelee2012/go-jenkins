@@ -3,90 +3,82 @@ package jenkins
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
 	"path"
 	"strings"
 )
 
 type JobItem struct {
-	*Client
-	BaseURL         string
-	Class           string
-	Credentials     *CredentialService
-	Views           *ViewService
+	jenkins     *Jenkins
+	URL         string
+	Class       string
+	Credentials *CredentialService
+	// Views           *ViewService
 	Name            string
 	FullName        string
 	FullDisplayName string
 }
 
-func NewJobItem(url, class string, client *Client) *JobItem {
-	j := &JobItem{BaseURL: url, Client: client, Class: class}
+func NewJobItem(url, class string, jenkins *Jenkins) *JobItem {
+	j := &JobItem{URL: url, jenkins: jenkins, Class: class}
 	j.Credentials = NewCredentialService(j)
-	j.Views = NewViewService(j)
+	// j.Views = NewViewService(j)
 	j.setName()
 	return j
 }
 
-func (job *JobItem) Rename(name string) error {
-	resp, err := job.R().SetQueryParam("newName", name).Post("confirmRename")
+func (j *JobItem) Rename(name string) error {
+	resp, err := R().SetQueryParam("newName", name).Post(j.URL + "confirmRename")
 	if err != nil {
 		return err
 	}
 	url, _ := resp.Location()
-	job.BaseURL = appendSlash(url.String())
-	job.setName()
+	j.URL = appendSlash(url.String())
+	j.setName()
 	return nil
 }
 
 func (j *JobItem) Move(path string) error {
 	path = strings.Trim(path, "/")
-	resp, err := j.R().SetQueryParam("destination", "/"+path).Post("move/move")
+	resp, err := R().SetQueryParam("destination", "/"+path).Post(j.URL + "move/move")
 	if err != nil {
 		return err
 	}
 	url, _ := resp.Location()
-	j.BaseURL = appendSlash(url.String())
+	j.URL = appendSlash(url.String())
 	j.setName()
 	return nil
 }
 
 func (j *JobItem) Copy(src, dest string) error {
-	_, err := j.R().SetQueryParams(map[string]string{"name": dest, "mode": "copy", "from": src}).Post("createItem")
+	_, err := R().SetQueryParams(map[string]string{"name": dest, "mode": "copy", "from": src}).Post(j.URL + "createItem")
 	return err
 }
 
 func (j *JobItem) GetParent() (*JobItem, error) {
-	fullName, _ := j.URL2Name(j.BaseURL)
+	fullName, _ := j.jenkins.URL2Name(j.URL)
 	dir, _ := path.Split(strings.Trim(fullName, "/"))
 	if dir == "" {
 		return nil, nil
 	}
-	return j.GetJob(dir)
+	return j.jenkins.GetJob(dir)
 }
 
 func (j *JobItem) GetConfigure() (string, error) {
-	resp, err := j.R().Get("config.xml")
-	return resp.String(), err
+	return getConfigure(j.URL)
 }
 
 func (j *JobItem) SetConfigure(xml string) error {
-	_, err := j.R().SetBody(xml).Post("config.xml")
-	return err
+	return setConfigure(j.URL, xml)
 }
 
 func (j *JobItem) Disable() error {
-	_, err := j.R().Post("disable")
-	return err
+	return disable(j.URL)
 }
 
 func (j *JobItem) Enable() error {
-	_, err := j.R().Post("enable")
-	return err
-}
-
-func (j *JobItem) BindAPIJson(params map[string]string, v interface{}) error {
-	_, err := j.R().SetQueryParams(params).SetResult(v).Get("api/json")
-	return err
+	return enable(j.URL)
 }
 
 func (j *JobItem) IsBuildable() (bool, error) {
@@ -94,28 +86,23 @@ func (j *JobItem) IsBuildable() (bool, error) {
 		Class     string `json:"_class"`
 		Buildable bool   `json:"buildable"`
 	}
-	err := j.BindAPIJson(map[string]string{"tree": "buildable"}, &job)
+	_, err := R().SetQueryParam("tree", "buildable").SetSuccessResult(job).Get(j.URL + "api/json")
 	return job.Buildable, err
 }
 
 func (j *JobItem) setName() {
-	urlPath, _ := j.URL2Name(j.BaseURL)
+	urlPath, _ := j.jenkins.URL2Name(j.URL)
 	j.FullName, _ = url.PathUnescape(urlPath)
 	_, j.Name = path.Split(j.FullName)
 	j.FullDisplayName, _ = url.PathUnescape(strings.ReplaceAll(j.FullName, "/", " » "))
 }
 
 func (j *JobItem) GetDescription() (string, error) {
-	data := make(map[string]string)
-	if err := j.BindAPIJson(map[string]string{"tree": "description"}, &data); err != nil {
-		return "", err
-	}
-	return data["description"], nil
+	return getDescription(j.URL)
 }
 
 func (j *JobItem) SetDescription(description string) error {
-	_, err := j.R().SetQueryParam("description", description).Post("submitDescription")
-	return err
+	return setDescription(j.URL, description)
 }
 
 func (j *JobItem) Build(params map[string]string) (*OneQueueItem, error) {
@@ -124,14 +111,14 @@ func (j *JobItem) Build(params map[string]string) (*OneQueueItem, error) {
 		for k := range params {
 			for _, e := range reserved {
 				if k != e {
-					return "buildWithParameters"
+					return "/buildWithParameters"
 				}
 			}
 		}
-		return "build"
+		return "/build"
 	}()
 
-	resp, err := j.R().SetQueryParams(params).Post(entry)
+	resp, err := R().SetQueryParams(params).Post(j.URL + entry)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +126,11 @@ func (j *JobItem) Build(params map[string]string) (*OneQueueItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewQueueItem(url.String(), j.Client), nil
+	return NewQueueItem(url.String(), j.jenkins), nil
+}
+
+func (j *JobItem) String() string {
+	return fmt.Sprintf("<%s: %s>", j.Class, j.URL)
 }
 
 func (j *JobItem) GetBuild(number int) (*BuildItem, error) {
@@ -147,13 +138,14 @@ func (j *JobItem) GetBuild(number int) (*BuildItem, error) {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}
 	jobJson := &Job{}
-	if err := j.BindAPIJson(map[string]string{"tree": "builds[number,url]"}, &jobJson); err != nil {
+
+	if _, err := R().SetQueryParam("tree", "builds[number,url]").SetSuccessResult(jobJson).Get(j.URL + "api/json"); err != nil {
 		return nil, err
 	}
 
 	for _, build := range jobJson.Builds {
 		if number == build.Number {
-			return NewBuildItem(build.URL, build.Class, j.Client), nil
+			return NewBuildItem(build.URL, build.Class, j.jenkins), nil
 		}
 	}
 	return nil, nil
@@ -164,19 +156,21 @@ func (j *JobItem) Get(name string) (*JobItem, error) {
 		return nil, fmt.Errorf("%s have no jobs", j)
 	}
 	var folderJson Job
-	if err := j.BindAPIJson(map[string]string{"tree": "jobs[url,name]"}, &folderJson); err != nil {
+	log.Println(j.URL)
+	if _, err := R().SetQueryParam("tree", "jobs[url,name]").SetSuccessResult(folderJson).Get(j.URL + "api/json"); err != nil {
 		return nil, err
 	}
+	log.Println(folderJson)
 	for _, job := range folderJson.Jobs {
 		if job.Name == name {
-			return NewJobItem(job.URL, job.Class, j.Client), nil
+			return NewJobItem(job.URL, job.Class, j.jenkins), nil
 		}
 	}
 	return nil, nil
 }
 
 func (j *JobItem) Create(name, xml string) error {
-	_, err := j.R().SetQueryParams(map[string]string{"name": name}).SetBody(xml).Post("createItem")
+	_, err := R().SetQueryParam("name", name).SetBody(xml).Post(j.URL + "createItem")
 	return err
 }
 
@@ -190,7 +184,7 @@ func (j *JobItem) List(depth int) ([]*JobItem, error) {
 		query = fmt.Sprintf(qf, query)
 	}
 	var folderJson Job
-	if err := j.BindAPIJson(map[string]string{"tree": query}, &folderJson); err != nil {
+	if _, err := R().SetQueryParam("tree", query).SetSuccessResult(folderJson).Get(j.URL + "api/json"); err != nil {
 		return nil, err
 	}
 	var jobs []*JobItem
@@ -200,7 +194,7 @@ func (j *JobItem) List(depth int) ([]*JobItem, error) {
 			if len(job.Jobs) > 0 {
 				_resolve(job)
 			}
-			jobs = append(jobs, NewJobItem(job.URL, job.Class, j.Client))
+			jobs = append(jobs, NewJobItem(job.URL, job.Class, j.jenkins))
 		}
 	}
 	_resolve(&folderJson)
@@ -233,26 +227,28 @@ func (j *JobItem) GetLastUnsucessfulBuild() (*BuildItem, error) {
 }
 
 func (j *JobItem) GetBuildByName(name string) (*BuildItem, error) {
+	log.Println(j)
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}
 	var jobJson map[string]json.RawMessage
-	if err := j.BindAPIJson(map[string]string{"tree": name + "[url]"}, &jobJson); err != nil {
+
+	if _, err := R().SetQueryParam("tree", name+"[url]").SetSuccessResult(jobJson).Get(j.URL + "api/json"); err != nil {
 		return nil, err
 	}
 	if string(jobJson[name]) == "null" {
 		return nil, nil
 	}
+	log.Println(jobJson)
 	build := &Build{}
 	if err := json.Unmarshal(jobJson[name], build); err != nil {
 		return nil, err
 	}
-	return NewBuildItem(build.URL, build.Class, j.Client), nil
+	return NewBuildItem(build.URL, build.Class, j.jenkins), nil
 }
 
 func (j *JobItem) Delete() error {
-	_, err := j.R().Post("doDelete")
-	return err
+	return doDelete(j.URL)
 }
 
 func (j *JobItem) ListBuilds() ([]*BuildItem, error) {
@@ -261,24 +257,26 @@ func (j *JobItem) ListBuilds() ([]*BuildItem, error) {
 	}
 	var jobJson Job
 	var builds []*BuildItem
-	if err := j.BindAPIJson(map[string]string{"tree": "builds[url]"}, &jobJson); err != nil {
+
+	if _, err := R().SetQueryParam("tree", "builds[url]").SetSuccessResult(jobJson).Get(j.URL + "api/json"); err != nil {
 		return nil, err
 	}
 
 	for _, build := range jobJson.Builds {
-		builds = append(builds, NewBuildItem(build.URL, build.Class, j.Client))
+		builds = append(builds, NewBuildItem(build.URL, build.Class, j.jenkins))
 	}
 	return builds, nil
 }
 
 func (j *JobItem) SetNextBuildNumber(number string) error {
-	_, err := j.R().SetPathParam("nextBuildNumber", number).Post("nextbuildnumber/submit")
+	_, err := R().SetPathParam("nextBuildNumber", number).Post("nextbuildnumber/submit")
 	return err
 }
 
 func (j *JobItem) GetParameters() ([]*ParameterDefinition, error) {
 	jobJson := &Job{}
-	if err := j.BindAPIJson(nil, jobJson); err != nil {
+
+	if _, err := R().SetSuccessResult(jobJson).Get(j.URL + "api/json"); err != nil {
 		return nil, err
 	}
 	for _, p := range jobJson.Property {
@@ -290,7 +288,7 @@ func (j *JobItem) GetParameters() ([]*ParameterDefinition, error) {
 }
 
 func (j *JobItem) SCMPolling() error {
-	_, err := j.R().Post("polling")
+	_, err := R().Post("polling")
 	return err
 }
 
@@ -298,7 +296,7 @@ func (j *JobItem) GetMultibranchPipelineScanLog() (string, error) {
 	if j.Class != "WorkflowMultiBranchProject" {
 		return "", fmt.Errorf("%s is not a WorkflowMultiBranchProject", j)
 	}
-	resp, err := j.R().Post("indexing/consoleText")
+	resp, err := R().Post("indexing/consoleText")
 	if err != nil {
 		return "", err
 	}

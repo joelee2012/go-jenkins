@@ -1,7 +1,6 @@
 package jenkins
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,32 +8,27 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/imroc/req"
 )
 
-type Item struct {
-	BaseURL string
-	Class   string
-	*Client
-}
+// type Item struct {
+// 	BaseURL string
+// 	Class   string
+// 	*Client
+// }
 
+// func NewItem(url, class string, client *Client) *Item {
+// 	url = appendSlash(url)
+// 	return &Item{BaseURL: url, Class: parseClass(class), Client: client}
+// }
 
-func NewItem(url, class string, client *Client) *Item {
-	url = appendSlash(url)
-	return &Item{BaseURL: url, Class: parseClass(class), Client: client}
-}
+// func (i *Item) BindAPIJson(params map[string]string, v interface{}) error {
+// 	_, err := i.R().SetQueryParams(params).SetResult(v).Get("api/json")
+// 	return err
+// }
 
-func (i *Item) BindAPIJson(params map[string]string, v interface{}) error {
-	_, err := i.R().SetQueryParams(params).SetResult(v).Get("api/json")
-	return err
-}
-
-
-func (i *Item) String() string {
-	return fmt.Sprintf("<%s: %s>", i.Class, i.BaseURL)
-}
-
+// func (i *Item) String() string {
+// 	return fmt.Sprintf("<%s: %s>", i.Class, i.BaseURL)
+// }
 
 var delimeter = regexp.MustCompile(`\w+$`)
 

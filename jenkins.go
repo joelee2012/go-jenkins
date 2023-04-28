@@ -1,8 +1,8 @@
 package jenkins
 
 import (
-	"context"
 	"fmt"
+	"log"
 	"path"
 	"strings"
 
@@ -10,22 +10,38 @@ import (
 )
 
 type APIError struct {
-	Message          string `json:"message"`
-	DocumentationUrl string `json:"documentation_url"`
+	Servlet string `json:"servlet"`
+	Message string `json:"message"`
+	URL     string `json:"url"`
+	Status  string `json:"status"`
 }
 
 func (e *APIError) Error() string {
-	return fmt.Sprintf("API Error: %s (refer to %s)", e.Message, e.DocumentationUrl)
+	return fmt.Sprintf("API Error: %s , (refer to %s), Code: %s", e.Message, e.URL, e.Status)
 }
 
-type Client struct {
-	Crumb *Crumb
-	*req.Client
-	ctx         *context.Context
+var reqClient *req.Client
+
+func Init() {
+	reqClient = req.NewClient()
+}
+
+func R() *req.Request {
+	return reqClient.R()
+}
+
+func doDelete(URL string) error {
+	_, err := R().Post(URL + "doDelete")
+	return err
+}
+
+type Jenkins struct {
+	URL         string
 	Credentials *CredentialService
+	Crumb       *Crumb
 	Nodes       *NodeService
 	Queue       *QueueService
-	Views       *ViewService
+	// Views       *ViewService
 }
 
 type Crumb struct {
@@ -45,7 +61,7 @@ type Crumb struct {
 //	)
 //
 //	func main() {
-//		client, err := jenkins.NewClient("http://localhost:8080/", "admin", "1234")
+//		client, err := jenkins.NewJenkins("http://localhost:8080/", "admin", "1234")
 //		if err != nil {
 //			log.Fatalln(err)
 //		}
@@ -93,16 +109,28 @@ type Crumb struct {
 //			return nil
 //		})
 //	}
-func NewClient(url, user, password string) (*Client, error) {
-	reqClient := req.NewClient()
-	// disable redirect for Job.Rename() and Move()
-	reqClient.SetBaseURL(url).
+func NewJenkins(url, user, password string) (*Jenkins, error) {
+	jenkins := &Jenkins{
+		URL: appendSlash(url),
+	}
+
+	reqClient.SetUserAgent("Go-Jenkins").
 		SetRedirectPolicy(req.NoRedirectPolicy()).
 		SetCommonBasicAuth(user, password).
 		SetCommonHeader("Accept", "application/json").
-		SetCommonError(&APIError{}).
+		SetCommonErrorResult(&APIError{}).
+		OnBeforeRequest(func(client *req.Client, req *req.Request) error {
+			if strings.HasSuffix(req.RawURL, "crumbIssuer/api/json") {
+				return nil
+			}
+			if _, err := jenkins.GetCrumb(); err != nil {
+				return err
+			}
+			return nil
+		}).
 		OnAfterResponse(func(client *req.Client, resp *req.Response) error {
 			if err, ok := resp.Error().(*APIError); ok {
+				log.Println(err)
 				resp.Err = err
 				return err
 			}
@@ -113,24 +141,21 @@ func NewClient(url, user, password string) (*Client, error) {
 			}
 			return nil
 		})
-	c := &Client{
-		Crumb:  &Crumb{},
-		Client: reqClient,
-	}
-	c.Credentials = NewCredentialService(c)
-	c.Nodes = NewNodeService(c)
-	c.Queue = NewQueueService(c)
-	c.Views = NewViewService(c)
-	return c, nil
+
+	jenkins.Credentials = NewCredentialService(jenkins)
+	jenkins.Nodes = NewNodeService(jenkins)
+	jenkins.Queue = NewQueueService(jenkins)
+	// c.Views = NewViewService(c)
+	return jenkins, nil
 }
 
-func (c *Client) GetCrumb() (*Crumb, error) {
-	if c.Crumb != nil {
-		return c.Crumb, nil
+func (j *Jenkins) GetCrumb() (*Crumb, error) {
+	if j.Crumb != nil {
+		return j.Crumb, nil
 	}
-	_, err := c.R().SetResult(&c.Crumb).Get("crumbIssuer/api/json")
-	c.SetCommonHeader(c.Crumb.RequestFields, c.Crumb.Value)
-	return c.Crumb, err
+	_, err := R().SetSuccessResult(&j.Crumb).Get(j.URL + "/crumbIssuer/api/json")
+	reqClient.SetCommonHeader(j.Crumb.RequestFields, j.Crumb.Value)
+	return j.Crumb, err
 }
 
 // Get job with fullname:
@@ -140,7 +165,7 @@ func (c *Client) GetCrumb() (*Crumb, error) {
 //		return err
 //	}
 //	fmt.Println(job)
-func (c *Client) GetJob(fullName string) (*JobItem, error) {
+func (c *Jenkins) GetJob(fullName string) (*JobItem, error) {
 	folder, shortName := c.resolveJob(fullName)
 	return folder.Get(shortName)
 }
@@ -170,20 +195,20 @@ func (c *Client) GetJob(fullName string) (*JobItem, error) {
 //	if err := client.CreateJob("path/to/name", xml); err != nil {
 //		log.Fatalln(err)
 //	}
-func (c *Client) CreateJob(fullName, xml string) error {
+func (c *Jenkins) CreateJob(fullName, xml string) error {
 	folder, shortName := c.resolveJob(fullName)
 	return folder.Create(shortName, xml)
 }
 
-func (c *Client) DeleteJob(fullName string) error {
+func (c *Jenkins) DeleteJob(fullName string) error {
 	return NewJobItem(c.Name2URL(fullName), "Job", c).Delete()
 }
 
-func (c *Client) String() string {
-	return fmt.Sprintf("<Jenkins: %s>", c.BaseURL)
+func (c *Jenkins) String() string {
+	return fmt.Sprintf("<Jenkins: %s>", c.URL)
 }
 
-func (c *Client) resolveJob(fullName string) (*JobItem, string) {
+func (c *Jenkins) resolveJob(fullName string) (*JobItem, string) {
 	dir, name := path.Split(strings.Trim(fullName, "/"))
 	url := c.Name2URL(dir)
 	return NewJobItem(url, "Folder", c), name
@@ -192,28 +217,28 @@ func (c *Client) resolveJob(fullName string) (*JobItem, string) {
 // Covert fullname to url, eg:
 //
 //	path/to/name -> http://jenkins/job/path/job/to/job/name
-func (c *Client) Name2URL(fullName string) string {
+func (c *Jenkins) Name2URL(fullName string) string {
 	if fullName == "" {
-		return c.BaseURL
+		return c.URL
 	}
 	path := strings.ReplaceAll(strings.Trim(fullName, "/"), "/", "/job/")
-	return appendSlash(c.BaseURL + "job/" + path)
+	return appendSlash(c.URL + "job/" + path)
 }
 
 // Covert url to full name, eg:
 //
 //	http://jenkins/job/path/job/to/job/name -> path/to/name
-func (c *Client) URL2Name(url string) (string, error) {
-	if !strings.HasPrefix(url, c.BaseURL) {
-		return "", fmt.Errorf("%s is not in %s", url, c.BaseURL)
+func (c *Jenkins) URL2Name(url string) (string, error) {
+	if !strings.HasPrefix(url, c.URL) {
+		return "", fmt.Errorf("%s is not in %s", url, c.URL)
 	}
-	path := strings.ReplaceAll(url, c.BaseURL, "/")
+	path := strings.ReplaceAll(url, c.URL, "/")
 	return strings.Trim(strings.ReplaceAll(path, "/job/", "/"), "/"), nil
 }
 
 // Get jenkins version number
-func (c *Client) GetVersion() (string, error) {
-	resp, err := c.R().Get("")
+func (c *Jenkins) GetVersion() (string, error) {
+	resp, err := R().Get(c.URL)
 	if err != nil {
 		return "", err
 	}
@@ -227,77 +252,66 @@ func (c *Client) GetVersion() (string, error) {
 //	client.BuildJob("your job", jenkins.ReqParams{})
 //	// with parameters
 //	client.BuildJob("your job", jenkins.ReqParams{"ARG1": "ARG1_VALUE"})
-func (c *Client) BuildJob(fullName string, params map[string]string) (*OneQueueItem, error) {
+func (c *Jenkins) BuildJob(fullName string, params map[string]string) (*OneQueueItem, error) {
 	return NewJobItem(c.Name2URL(fullName), "Job", c).Build(params)
 }
 
 // List job with depth
-func (c *Client) ListJobs(depth int) ([]*JobItem, error) {
-	job := NewJobItem(c.BaseURL, "Folder", c)
+func (c *Jenkins) ListJobs(depth int) ([]*JobItem, error) {
+	job := NewJobItem(c.URL, "Folder", c)
 	return job.List(depth)
 }
 
-func (c *Client) Restart() error {
-	_, err := c.R().Post("restart")
+func (c *Jenkins) Restart() error {
+	_, err := R().Post("/restart")
 	return err
 }
 
-func (c *Client) SafeRestart() error {
-	_, err := c.R().Post("safeRestart")
+func (c *Jenkins) SafeRestart() error {
+	_, err := R().Post("/safeRestart")
 	return err
 }
 
-func (c *Client) Exit() error {
-	_, err := c.R().Post("exit")
+func (c *Jenkins) Exit() error {
+	_, err := R().Post("/exit")
 	return err
 }
 
-func (c *Client) SafeExit() error {
-	_, err := c.R().Post("safeExit")
+func (c *Jenkins) SafeExit() error {
+	_, err := R().Post("/safeExit")
 	return err
 }
 
-func (c *Client) QuiteDown() error {
-	_, err := c.R().Post("quietDown")
+func (c *Jenkins) QuiteDown() error {
+	_, err := R().Post("/quietDown")
 	return err
 }
 
-func (c *Client) CancelQuiteDown() error {
-	_, err := c.R().Post("cancelQuietDown")
+func (c *Jenkins) CancelQuiteDown() error {
+	_, err := R().Post("/cancelQuietDown")
 	return err
 }
 
-func (c *Client) ReloadJCasC() error {
-	_, err := c.R().Post("configuration-as-code/reload")
+func (c *Jenkins) ReloadJCasC() error {
+	_, err := R().Post("/configuration-as-code/reload")
 	return err
 }
 
-func (c *Client) ExportJCasC(name string) error {
-	_, err := c.R().SetOutputFile(name).Get("configuration-as-code/export")
+func (c *Jenkins) ExportJCasC(name string) error {
+	_, err := R().SetOutputFile(name).Get(c.URL + "/configuration-as-code/export")
 	return err
 }
 
-// Bind jenkins JSON data to interface,
-//
-//	// bind json data to map
-//	data := make(map[string]string)
-//	client.BindAPIJson(jenkins.ReqParams{"tree":"description"}, &data)
-//	fmt.Println(data["description"])
-func (c *Client) BindAPIJson(params map[string]string, v interface{}) error {
-	_, err := c.R().SetQueryParams(params).SetResult(v).Get("api/json")
-	return err
-}
-
-func (c *Client) ValidateJenkinsfile(content string) (string, error) {
-	resp, err := c.R().SetQueryParam("jenkinsfile", content).Post("pipeline-model-converter/validate")
+func (c *Jenkins) ValidateJenkinsfile(content string) (string, error) {
+	resp, err := R().SetQueryParam("jenkinsfile", content).Post(c.URL + "/pipeline-model-converter/validate")
 	if err != nil {
 		return "", err
 	}
 	return resp.String(), nil
 }
 
-func (c *Client) RunScript(script string) (string, error) {
-	resp, err := c.R().SetQueryParam("script", script).Post("scriptText")
+func (c *Jenkins) RunScript(script string) (string, error) {
+	resp, err := R().SetQueryParam("script", script).Post(c.URL + "/scriptText")
 	if err != nil {
 		return "", err
 	}

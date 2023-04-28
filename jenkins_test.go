@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	client    *Client
+	client    *Jenkins
 	folder    *JobItem
 	pipeline  *JobItem
 	pipeline2 *JobItem
@@ -86,7 +86,7 @@ var (
 func setup() error {
 	log.Println("execute setup function")
 	var err error
-	client, err = NewClient(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
+	client, err = NewJenkins(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
 	if err != nil {
 		return err
 	}
@@ -108,6 +108,7 @@ func setup() error {
 	}
 
 	pipeline, err = client.GetJob("folder/pipeline")
+	log.Println(pipeline)
 	if err != nil {
 		return err
 	}
@@ -124,7 +125,7 @@ func tearsdown() {
 }
 
 func TestNewJenkins(t *testing.T) {
-	assert.Equal(t, fmt.Sprint(client), fmt.Sprintf("<Jenkins: %s>", client.BaseURL))
+	assert.Equal(t, fmt.Sprint(client), fmt.Sprintf("<Jenkins: %s>", client.URL))
 	expect := "Jenkins-Crumb"
 	crumb, err := client.GetCrumb()
 	assert.Nil(t, err)
@@ -155,7 +156,7 @@ func TestName2Url(t *testing.T) {
 		{"job/job", "job/job/job/job/"},
 	}
 	for _, test := range tests {
-		assert.Equal(t, client.BaseURL+test.expect, client.Name2URL(test.given))
+		assert.Equal(t, client.URL+test.expect, client.Name2URL(test.given))
 	}
 }
 
@@ -168,7 +169,7 @@ func TestUrl2Name(t *testing.T) {
 		{"job/job", "job/job/job/job"},
 	}
 	for _, test := range tests {
-		name, _ := client.URL2Name(client.BaseURL + test.given)
+		name, _ := client.URL2Name(client.URL + test.given)
 		assert.Equal(t, test.expect, name)
 	}
 	_, err := client.URL2Name("http://0.0.0.1/job/folder1/")

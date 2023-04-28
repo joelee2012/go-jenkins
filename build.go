@@ -6,18 +6,18 @@ import (
 )
 
 type BuildItem struct {
-	*Client
+	*Jenkins
 	BaseURL string
 	Class   string
 	ID      int
 }
 
-func NewBuildItem(url, class string, client *Client) *BuildItem {
-	return &BuildItem{Client: client, BaseURL: url, Class: class, ID: parseId(url)}
+func NewBuildItem(url, class string, jenkins *Jenkins) *BuildItem {
+	return &BuildItem{Jenkins: jenkins, BaseURL: url, Class: class, ID: parseId(url)}
 }
 
 func (b *BuildItem) LoopLog(f func(line string) error) error {
-	resp, err := b.R().Get("consoleText")
+	resp, err := R().Get(b.BaseURL + "consoleText")
 	if err != nil {
 		return err
 	}
@@ -35,51 +35,46 @@ func (b *BuildItem) LoopLog(f func(line string) error) error {
 	return nil
 }
 
-func (b *BuildItem) BindAPIJson(params map[string]string, v interface{}) error {
-	_, err := b.R().SetQueryParams(params).SetSuccessResult(v).Get("api/json")
-	return err
-}
-
 func (b *BuildItem) IsBuilding() (bool, error) {
 	var build struct {
 		Class    string `json:"_class"`
 		Building bool   `json:"building"`
 	}
-	err := b.BindAPIJson(map[string]string{"tree": "building"}, &build)
+	_, err := R().SetQueryParam("tree", "building").SetSuccessResult(build).Get(b.BaseURL + "api/json")
 	return build.Building, err
 }
 
 func (b *BuildItem) GetResult() (string, error) {
 	status := make(map[string]string)
-	err := b.BindAPIJson(map[string]string{"tree": "result"}, &status)
+	_, err := R().SetQueryParam("tree", "result").SetSuccessResult(&status).Get(b.BaseURL + "api/json")
 	return status["result"], err
 }
 
 func (b *BuildItem) Delete() error {
-	_, err := b.R().Post("doDelete")
+	_, err := R().Post(b.BaseURL + "doDelete")
 	return err
 }
 
 func (b *BuildItem) Stop() error {
-	_, err := b.R().Post("stop")
+	_, err := R().Post(b.BaseURL + "stop")
 	return err
 }
 
 func (b *BuildItem) Kill() error {
-	_, err := b.R().Post("kill")
+	_, err := R().Post(b.BaseURL + "kill")
 	return err
 }
 
 func (b *BuildItem) Term() error {
-	_, err := b.R().Post("term")
+	_, err := R().Post(b.BaseURL + "term")
 	return err
 }
 
 var re = regexp.MustCompile(`\w+[/]?$`)
 
 func (b *BuildItem) GetJob() (*JobItem, error) {
-	jobName, _ := b.client.URL2Name(re.ReplaceAllLiteralString(b.BaseURL, ""))
-	return b.client.GetJob(jobName)
+	jobName, _ := b.URL2Name(re.ReplaceAllLiteralString(b.BaseURL, ""))
+	return b.Jenkins.GetJob(jobName)
 }
 
 func (b *BuildItem) LoopProgressiveLog(kind string, f func(line string) error) error {
@@ -94,33 +89,33 @@ func (b *BuildItem) LoopProgressiveLog(kind string, f func(line string) error) e
 	}
 	start := "0"
 	for {
-		resp, err := b.Request("GET", entry, ReqParams{"start": start})
+		resp, err := R().SetPathParam("start", start).Get(b.BaseURL + entry)
 		if err != nil {
 			return err
 		}
-		if start == resp.Response().Header.Get("X-Text-Size") {
+		if start == resp.Header.Get("X-Text-Size") {
 			continue
 		}
 		if err := f(resp.String()); err != nil {
 			return err
 		}
-		if resp.Response().Header.Get("X-More-Data") != "true" {
+		if resp.Header.Get("X-More-Data") != "true" {
 			break
 		}
-		start = resp.Response().Header.Get("X-Text-Size")
+		start = resp.Header.Get("X-Text-Size")
 	}
 	return nil
 }
 
 func (b *BuildItem) GetDescription() (string, error) {
 	data := make(map[string]string)
-	if err := b.BindAPIJson(ReqParams{"tree": "description"}, &data); err != nil {
+	if _, err := R().SetQueryParam("tree", "description").SetSuccessResult(&data).Get(b.BaseURL + "api/json"); err != nil {
 		return "", err
 	}
 	return data["description"], nil
 }
 
 func (b *BuildItem) SetDescription(description string) error {
-	_, err := b.Request("POST", "submitDescription", ReqParams{"description": description})
+	_, err := R().SetQueryParam("description", description).Post(b.BaseURL + "submitDescription")
 	return err
 }
