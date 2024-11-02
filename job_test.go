@@ -2,6 +2,7 @@ package jenkins
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,13 +42,15 @@ func TestIsBuildable(t *testing.T) {
 	assert.True(t, buildable)
 
 	// disable and check
-	assert.Nil(t, pipeline.Disable())
+	_, err = pipeline.Disable()
+	assert.Nil(t, err)
 	buildable, err = pipeline.IsBuildable()
 	assert.Nil(t, err)
 	assert.False(t, buildable)
 
 	// enable and check
-	assert.Nil(t, pipeline.Enable())
+	_, err = pipeline.Enable()
+	assert.Nil(t, err)
 	buildable, err = pipeline.IsBuildable()
 	assert.Nil(t, err)
 	assert.True(t, buildable)
@@ -100,11 +103,13 @@ func TestFolderCredentials(t *testing.T) {
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
-	assert.Nil(t, cm.Create(credConf))
+	_, err = cm.Create(strings.NewReader(credConf))
+	assert.Nil(t, err)
 	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 1)
-	assert.Nil(t, cm.Delete("user-id"))
+	_, err = cm.Delete("user-id")
+	assert.Nil(t, err)
 	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)

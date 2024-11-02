@@ -1,7 +1,8 @@
 package jenkins
 
 import (
-	"github.com/imroc/req"
+	"io"
+	"net/http"
 )
 
 type CredentialService struct {
@@ -9,19 +10,19 @@ type CredentialService struct {
 }
 
 func NewCredentialService(v interface{}) *CredentialService {
-	if c, ok := v.(*Client); ok {
+	if c, ok := v.(*Jenkins); ok {
 		return &CredentialService{Item: NewItem(c.URL+"credentials/store/system/domain/_/", "Credentials", c)}
 	}
 
 	if c, ok := v.(*JobItem); ok {
-		return &CredentialService{Item: NewItem(c.URL+"credentials/store/folder/domain/_/", "Credentials", c.client)}
+		return &CredentialService{Item: NewItem(c.URL+"credentials/store/folder/domain/_/", "Credentials", c.jenkins)}
 	}
 	return nil
 }
 
 func (cs *CredentialService) Get(name string) (*Credential, error) {
 	var credsJson Credentials
-	if err := cs.BindAPIJson(ReqParams{"depth": "1"}, &credsJson); err != nil {
+	if err := cs.BindAPIJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err
 	}
 	if credsJson.Credentials != nil {
@@ -34,29 +35,25 @@ func (cs *CredentialService) Get(name string) (*Credential, error) {
 	return nil, nil
 }
 
-func (cs *CredentialService) Create(xml string) error {
-	_, err := cs.Request("POST", "createCredentials", req.BodyXML(xml))
-	return err
+func (cs *CredentialService) Create(xml io.Reader) (*http.Response, error) {
+	return cs.Request("POST", "createCredentials", xml)
 }
 
-func (cs *CredentialService) Delete(name string) error {
-	_, err := cs.Request("POST", "credential/"+name+"/doDelete")
-	return err
+func (cs *CredentialService) Delete(name string) (*http.Response, error) {
+	return cs.Request("POST", "credential/"+name+"/doDelete", nil)
 }
 
 func (cs *CredentialService) GetConfigure(name string) (string, error) {
-	resp, err := cs.Request("GET", "credential/"+name+"/config.xml")
-	return resp.String(), err
+	return readResponseToString(cs, "GET", "credential/"+name+"/config.xml", nil)
 }
 
-func (cs *CredentialService) SetConfigure(name, xml string) error {
-	_, err := cs.Request("POST", "credential/"+name+"/config.xml", req.BodyXML(xml))
-	return err
+func (cs *CredentialService) SetConfigure(name string, xml io.Reader) (*http.Response, error) {
+	return cs.Request("POST", "credential/"+name+"/config.xml", xml)
 }
 
 func (cs *CredentialService) List() ([]*Credential, error) {
 	var credsJson Credentials
-	if err := cs.BindAPIJson(ReqParams{"depth": "1"}, &credsJson); err != nil {
+	if err := cs.BindAPIJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err
 	}
 	return credsJson.Credentials, nil

@@ -16,7 +16,7 @@ func setupBuild(t *testing.T) *BuildItem {
 	if build != nil {
 		return build
 	}
-	qitem, err := pipeline.Build(ReqParams{})
+	qitem, err := pipeline.Build(nil)
 	assert.Nil(t, err)
 	for {
 		time.Sleep(1 * time.Second)
@@ -27,8 +27,8 @@ func setupBuild(t *testing.T) *BuildItem {
 		}
 	}
 	var output []string
-	err = build.LoopProgressiveLog("text", func(line string) error {
-		output = append(output, line)
+	err = build.LoopProgressiveLog("text", func(line []byte) error {
+		output = append(output, string(line))
 		time.Sleep(1 * time.Second)
 		return nil
 	})
@@ -56,7 +56,8 @@ func TestBuildItemGetDescription(t *testing.T) {
 	discription, err := build.GetDescription()
 	assert.Nil(t, err)
 	assert.Empty(t, discription)
-	assert.Nil(t, build.SetDescription("test"))
+	_, err = build.SetDescription("test")
+	assert.Nil(t, err)
 	discription, err = build.GetDescription()
 	assert.Nil(t, err)
 	assert.Equal(t, discription, "test")
@@ -65,8 +66,9 @@ func TestBuildItemGetDescription(t *testing.T) {
 func TestBuildItemDelete(t *testing.T) {
 	build := setupBuild(t)
 	assert.NotNil(t, build)
-	assert.Nil(t, build.Delete())
-	build, err := pipeline.GetBuild(build.ID)
+	_, err := build.Delete()
+	assert.Nil(t, err)
+	build, err = pipeline.GetBuild(build.ID)
 	assert.Nil(t, err)
 	assert.Nil(t, build)
 }
@@ -81,10 +83,11 @@ func TestStopBuildItem(t *testing.T) {
   </definition>
   <disabled>false</disabled>
 </flow-definition>`
-	assert.Nil(t, pipeline.SetConfigure(conf))
+	_, err := pipeline.SetConfigure(strings.NewReader(conf))
+	assert.Nil(t, err)
 
 	// start build to sleep 20s
-	qitem, err := pipeline.Build(ReqParams{})
+	qitem, err := pipeline.Build(nil)
 	assert.Nil(t, err)
 	job, err := qitem.GetJob()
 	assert.Nil(t, err)
@@ -101,7 +104,8 @@ func TestStopBuildItem(t *testing.T) {
 	building, err := build.IsBuilding()
 	assert.Nil(t, err)
 	assert.True(t, building)
-	assert.Nil(t, build.Stop())
+	_, err = build.Stop()
+	assert.Nil(t, err)
 	building, err = build.IsBuilding()
 	assert.Nil(t, err)
 	assert.False(t, building)
@@ -109,6 +113,8 @@ func TestStopBuildItem(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, result, "ABORTED")
 	// delete build and revert configure
-	assert.Nil(t, build.Delete())
-	assert.Nil(t, pipeline.SetConfigure(jobConf))
+	_, err = build.Delete()
+	assert.Nil(t, err)
+	_, err = pipeline.SetConfigure(strings.NewReader(jobConf))
+	assert.Nil(t, err)
 }

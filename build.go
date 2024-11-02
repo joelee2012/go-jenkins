@@ -2,6 +2,9 @@ package jenkins
 
 import (
 	"bufio"
+	"io"
+	"net/http"
+	"net/url"
 	"regexp"
 )
 
@@ -10,17 +13,17 @@ type BuildItem struct {
 	ID int
 }
 
-func NewBuildItem(url, class string, client *Client) *BuildItem {
+func NewBuildItem(url, class string, client *Jenkins) *BuildItem {
 	return &BuildItem{Item: NewItem(url, class, client), ID: parseId(url)}
 }
 
 func (b *BuildItem) LoopLog(f func(line string) error) error {
-	resp, err := b.Request("GET", "consoleText", ReqParams{})
+	resp, err := b.Request("GET", "consoleText", nil)
 	if err != nil {
 		return err
 	}
-	defer resp.Response().Body.Close()
-	scanner := bufio.NewScanner(resp.Response().Body)
+	defer resp.Body.Close()
+	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		if err := f(scanner.Text()); err != nil {
 			return err
@@ -38,44 +41,40 @@ func (b *BuildItem) IsBuilding() (bool, error) {
 		Class    string `json:"_class"`
 		Building bool   `json:"building"`
 	}
-	err := b.BindAPIJson(ReqParams{"tree": "building"}, &build)
+	err := b.BindAPIJson(&build, &ApiJsonOpts{Tree: "building"})
 	return build.Building, err
 }
 
 func (b *BuildItem) GetResult() (string, error) {
 	status := make(map[string]string)
-	err := b.BindAPIJson(ReqParams{"tree": "result"}, &status)
+	err := b.BindAPIJson(&status, &ApiJsonOpts{Tree: "result"})
 	return status["result"], err
 }
 
-func (b *BuildItem) Delete() error {
-	_, err := b.Request("POST", "doDelete")
-	return err
+func (b *BuildItem) Delete() (*http.Response, error) {
+	return b.Request("POST", "doDelete", nil)
 }
 
-func (b *BuildItem) Stop() error {
-	_, err := b.Request("POST", "stop")
-	return err
+func (b *BuildItem) Stop() (*http.Response, error) {
+	return b.Request("POST", "stop", nil)
 }
 
-func (b *BuildItem) Kill() error {
-	_, err := b.Request("POST", "kill")
-	return err
+func (b *BuildItem) Kill() (*http.Response, error) {
+	return b.Request("POST", "kill", nil)
 }
 
-func (b *BuildItem) Term() error {
-	_, err := b.Request("POST", "term")
-	return err
+func (b *BuildItem) Term() (*http.Response, error) {
+	return b.Request("POST", "term", nil)
 }
 
 var re = regexp.MustCompile(`\w+[/]?$`)
 
 func (b *BuildItem) GetJob() (*JobItem, error) {
-	jobName, _ := b.client.URL2Name(re.ReplaceAllLiteralString(b.URL, ""))
-	return b.client.GetJob(jobName)
+	jobName, _ := b.jenkins.URL2Name(re.ReplaceAllLiteralString(b.URL, ""))
+	return b.jenkins.GetJob(jobName)
 }
 
-func (b *BuildItem) LoopProgressiveLog(kind string, f func(line string) error) error {
+func (b *BuildItem) LoopProgressiveLog(kind string, f func(data []byte) error) error {
 	var entry string
 	switch kind {
 	case "html":
@@ -87,33 +86,40 @@ func (b *BuildItem) LoopProgressiveLog(kind string, f func(line string) error) e
 	}
 	start := "0"
 	for {
-		resp, err := b.Request("GET", entry, ReqParams{"start": start})
+		resp, err := b.Request("GET", entry+"?start="+start, nil)
 		if err != nil {
 			return err
 		}
-		if start == resp.Response().Header.Get("X-Text-Size") {
+
+		if start == resp.Header.Get("X-Text-Size") {
 			continue
 		}
-		if err := f(resp.String()); err != nil {
+		data, err := io.ReadAll(resp.Body)
+		if err != nil {
 			return err
 		}
-		if resp.Response().Header.Get("X-More-Data") != "true" {
+		resp.Body.Close()
+		if err := f(data); err != nil {
+			return err
+		}
+		if resp.Header.Get("X-More-Data") != "true" {
 			break
 		}
-		start = resp.Response().Header.Get("X-Text-Size")
+		start = resp.Header.Get("X-Text-Size")
 	}
 	return nil
 }
 
 func (b *BuildItem) GetDescription() (string, error) {
 	data := make(map[string]string)
-	if err := b.BindAPIJson(ReqParams{"tree": "description"}, &data); err != nil {
+	if err := b.BindAPIJson(&data, &ApiJsonOpts{Tree: "description"}); err != nil {
 		return "", err
 	}
 	return data["description"], nil
 }
 
-func (b *BuildItem) SetDescription(description string) error {
-	_, err := b.Request("POST", "submitDescription", ReqParams{"description": description})
-	return err
+func (b *BuildItem) SetDescription(description string) (*http.Response, error) {
+	v := url.Values{}
+	v.Add("description", description)
+	return b.Request("POST", "submitDescription?"+v.Encode(), nil)
 }

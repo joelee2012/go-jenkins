@@ -3,6 +3,7 @@ package jenkins
 import (
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -12,7 +13,7 @@ import (
 )
 
 var (
-	client    *Client
+	client    *Jenkins
 	folder    *JobItem
 	pipeline  *JobItem
 	pipeline2 *JobItem
@@ -98,7 +99,7 @@ func setup() error {
 
 	for index, name := range names {
 		log.Printf("create %s", name)
-		if err = client.CreateJob(name, confs[index]); err != nil {
+		if _, err = client.CreateJob(name, strings.NewReader(confs[index])); err != nil {
 			return err
 		}
 	}
@@ -194,7 +195,8 @@ func TestGetJob(t *testing.T) {
 
 func TestDeleteJob(t *testing.T) {
 	assert.NotNil(t, client.DeleteJob(""))
-	assert.Nil(t, client.CreateJob("folder/pipeline3", jobConf))
+	_, err := client.CreateJob("folder/pipeline3", strings.NewReader(jobConf))
+	assert.Nil(t, err)
 	assert.Nil(t, client.DeleteJob("folder/pipeline3"))
 	assert.NotNil(t, client.DeleteJob("folder/pipeline3"))
 }
@@ -246,7 +248,9 @@ func TestBuildJob(t *testing.T) {
 }
 
 func TestBuildJobWithParameters(t *testing.T) {
-	qitem, err := client.BuildJob(pipeline2.FullName, ReqParams{"ARG1": "ARG1_VALUE"})
+	v := url.Values{}
+	v.Add("ARG1", "ARG1_VALUE")
+	qitem, err := client.BuildJob(pipeline2.FullName, v)
 	var build *BuildItem
 	assert.Nil(t, err)
 	for {
@@ -258,8 +262,8 @@ func TestBuildJobWithParameters(t *testing.T) {
 		}
 	}
 	var output []string
-	err = build.LoopProgressiveLog("text", func(line string) error {
-		output = append(output, line)
+	err = build.LoopProgressiveLog("text", func(line []byte) error {
+		output = append(output, string(line))
 		time.Sleep(1 * time.Second)
 		return nil
 	})
@@ -272,7 +276,8 @@ func TestSystemCredentials(t *testing.T) {
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
-	assert.Nil(t, cm.Create(credConf))
+	_, err = cm.Create(strings.NewReader(credConf))
+	assert.Nil(t, err)
 	cred, err := cm.Get("user-id")
 	assert.NotNil(t, cred)
 	assert.Nil(t, err)
@@ -283,7 +288,8 @@ func TestSystemCredentials(t *testing.T) {
 	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 1)
-	assert.Nil(t, cm.Delete("user-id"))
+	_, err = cm.Delete("user-id")
+	assert.Nil(t, err)
 	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
@@ -310,15 +316,17 @@ func TestQuiteDown(t *testing.T) {
 		Class        string `json:"_class"`
 		QuietingDown bool   `json:"quietingDown"`
 	}
-	assert.Nil(t, client.BindAPIJson(ReqParams{}, &status))
+	assert.Nil(t, client.BindAPIJson(&status, nil))
 	assert.False(t, status.QuietingDown)
 	// set quite down
-	assert.Nil(t, client.QuiteDown())
-	assert.Nil(t, client.BindAPIJson(ReqParams{}, &status))
+	_, err := client.QuiteDown()
+	assert.Nil(t, err)
+	assert.Nil(t, client.BindAPIJson(&status, nil))
 	assert.True(t, status.QuietingDown)
 	// cancel quite down
-	assert.Nil(t, client.CancelQuiteDown())
-	assert.Nil(t, client.BindAPIJson(ReqParams{}, &status))
+	_, err = client.CancelQuiteDown()
+	assert.Nil(t, err)
+	assert.Nil(t, client.BindAPIJson(&status, nil))
 	assert.False(t, status.QuietingDown)
 }
 

@@ -1,10 +1,11 @@
 package jenkins
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"path"
 	"regexp"
 	"strconv"
@@ -14,37 +15,28 @@ import (
 )
 
 type Item struct {
-	URL    string
-	Class  string
-	client *Client
+	URL     string
+	Class   string
+	jenkins *Jenkins
 }
 
 type ReqParams = req.Param
 
-func NewItem(url, class string, client *Client) *Item {
+func NewItem(url, class string, client *Jenkins) *Item {
 	url = appendSlash(url)
-	return &Item{URL: url, Class: parseClass(class), client: client}
+	return &Item{URL: url, Class: parseClass(class), jenkins: client}
 }
 
-func (i *Item) BindAPIJson(params ReqParams, v interface{}) error {
-	resp, err := i.Request("GET", "api/json", params)
-	if err != nil {
-		return err
-	}
-	return resp.ToJSON(v)
+func (i *Item) BindAPIJson(v interface{}, opts *ApiJsonOpts) error {
+	return unmarshalApiJson(i, v, opts)
 }
 
-func (i *Item) Request(method, entry string, vs ...interface{}) (*req.Resp, error) {
-	return i.client.Do(method, i.URL+entry, vs...)
+func (i *Item) Request(method, entry string, body io.Reader) (*http.Response, error) {
+	return i.jenkins.doRequest(method, i.URL+entry, body)
 }
 
 func (i *Item) String() string {
 	return fmt.Sprintf("<%s: %s>", i.Class, i.URL)
-}
-
-func (i *Item) WithContext(ctx context.Context) *Item {
-	i.client.WithContext(ctx)
-	return i
 }
 
 var delimeter = regexp.MustCompile(`\w+$`)

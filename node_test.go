@@ -26,11 +26,13 @@ func TestDisableNode(t *testing.T) {
 	assert.False(t, node.Offline)
 
 	// disable and then check
-	assert.Nil(t, client.Nodes.Disable("Built-In Node", "test"))
+	_, err = client.Nodes.Disable("Built-In Node", "test")
+	assert.Nil(t, err)
 	node, err = client.Nodes.Get("Built-In Node")
 	assert.Nil(t, err)
 	assert.True(t, node.Offline)
 
 	// enable again
-	assert.Nil(t, client.Nodes.Enable("Built-In Node"))
+	_, err = client.Nodes.Enable("Built-In Node")
+	assert.Nil(t, err)
 }
