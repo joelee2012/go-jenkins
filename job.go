@@ -273,9 +273,7 @@ func (j *JobItem) ListBuilds() ([]*BuildItem, error) {
 }
 
 func (j *JobItem) SetNextBuildNumber(number int) error {
-	v := url.Values{}
-	v.Add("nextBuildNumber", string(number))
-	_, err := j.Request("POST", "nextbuildnumber/submit?"+v.Encode(), nil)
+	_, err := j.Request("POST", fmt.Sprintf("nextbuildnumber/submit?nextBuildNumber=%d", number), nil)
 	return err
 }
 

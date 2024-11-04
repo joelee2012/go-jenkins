@@ -1,8 +1,8 @@
 package jenkins
 
 import (
+	"fmt"
 	"net/http"
-	"net/url"
 )
 
 type OneQueueItem struct {
@@ -103,7 +103,5 @@ func (q *QueueService) Get(id int) (*OneQueueItem, error) {
 }
 
 func (q *QueueService) Cancel(id int) (*http.Response, error) {
-	v := url.Values{}
-	v.Add("id", string(id))
-	return q.Request("POST", "cancelItem?"+v.Encode(), nil)
+	return q.Request("POST", fmt.Sprintf("cancelItem?id=%d", id), nil)
 }

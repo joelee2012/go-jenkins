@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -346,7 +347,7 @@ type ApiJsonOpts struct {
 func (o *ApiJsonOpts) Encode() string {
 	v := url.Values{}
 	v.Add("tree", o.Tree)
-	v.Add("depth", string(o.Depth))
+	v.Add("depth", strconv.Itoa(o.Depth))
 	return v.Encode()
 }
 
