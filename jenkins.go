@@ -2,7 +2,6 @@ package jenkins
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -21,15 +20,6 @@ type JenkinsOpts struct {
 	http.Client
 }
 
-func (o *JenkinsOpts) DoRequest(url, method string, body io.Reader) (*http.Response, error) {
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		return nil, err
-	}
-	req.SetBasicAuth(o.User, o.Password)
-	return o.Do(req)
-}
-
 type Jenkins struct {
 	URL         string
 	User        string
@@ -37,7 +27,6 @@ type Jenkins struct {
 	client      *http.Client
 	Header      http.Header
 	Crumb       *Crumb
-	ctx         *context.Context
 	Credentials *CredentialService
 	Nodes       *NodeService
 	Queue       *QueueService
@@ -159,7 +148,7 @@ func (c *Jenkins) GetCrumb() (*Crumb, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.SetBasicAuth(c.User, c.Password)
+	req.Header = c.Header
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
