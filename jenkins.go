@@ -11,8 +11,6 @@ import (
 	"net/url"
 	"path"
 	"strings"
-
-	"github.com/imroc/req"
 )
 
 type JenkinsOpts struct {
@@ -38,7 +36,6 @@ type Jenkins struct {
 	client      *http.Client
 	Header      http.Header
 	Crumb       *Crumb
-	Req         *req.Req
 	ctx         *context.Context
 	Credentials *CredentialService
 	Nodes       *NodeService
@@ -113,7 +110,7 @@ type Crumb struct {
 //	}
 func NewClient(url, user, password string) (*Jenkins, error) {
 	url = appendSlash(url)
-	c := &Jenkins{URL: url, Header: make(http.Header), Req: req.New()}
+	c := &Jenkins{URL: url, Header: make(http.Header)}
 	// disable redirect for Job.Rename() and Move()
 	c.client = &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {

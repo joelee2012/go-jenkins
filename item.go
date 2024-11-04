@@ -10,8 +10,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/imroc/req"
 )
 
 type Item struct {
@@ -19,8 +17,6 @@ type Item struct {
 	Class   string
 	jenkins *Jenkins
 }
-
-type ReqParams = req.Param
 
 func NewItem(url, class string, client *Jenkins) *Item {
 	url = appendSlash(url)
