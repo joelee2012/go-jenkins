@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"path"
 	"strconv"
@@ -103,10 +102,8 @@ type Crumb struct {
 func NewClient(url, user, password string) (*Jenkins, error) {
 	url = appendSlash(url)
 	c := &Jenkins{URL: url, Header: make(http.Header)}
-	jar, _ := cookiejar.New(nil)
 	// disable redirect for Job.Rename() and Move()
 	c.client = &http.Client{
-		Jar: jar,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -170,6 +167,7 @@ func (c *Jenkins) GetCrumb() (*Crumb, error) {
 		return nil, err
 	}
 	c.Header.Set(c.Crumb.RequestFields, c.Crumb.Value)
+	c.Header.Set("Cookie", resp.Header.Get("set-cookie"))
 	return c.Crumb, nil
 }
 
@@ -353,7 +351,9 @@ type ApiJsonOpts struct {
 
 func (o *ApiJsonOpts) Encode() string {
 	v := url.Values{}
-	v.Add("tree", o.Tree)
+	if o.Tree != "" {
+		v.Add("tree", o.Tree)
+	}
 	v.Add("depth", strconv.Itoa(o.Depth))
 	return v.Encode()
 }
