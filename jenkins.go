@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"path"
 	"strconv"
@@ -102,8 +103,10 @@ type Crumb struct {
 func NewClient(url, user, password string) (*Jenkins, error) {
 	url = appendSlash(url)
 	c := &Jenkins{URL: url, Header: make(http.Header)}
+	jar, _ := cookiejar.New(nil)
 	// disable redirect for Job.Rename() and Move()
 	c.client = &http.Client{
+		Jar: jar,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},

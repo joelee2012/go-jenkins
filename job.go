@@ -130,7 +130,7 @@ func (j *JobItem) Build(param url.Values) (*OneQueueItem, error) {
 		return "build"
 	}()
 
-	resp, err := j.Request("POST", entry+param.Encode(), nil)
+	resp, err := j.Request("POST", entry+"?"+param.Encode(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -272,9 +272,8 @@ func (j *JobItem) ListBuilds() ([]*BuildItem, error) {
 	return builds, nil
 }
 
-func (j *JobItem) SetNextBuildNumber(number int) error {
-	_, err := j.Request("POST", fmt.Sprintf("nextbuildnumber/submit?nextBuildNumber=%d", number), nil)
-	return err
+func (j *JobItem) SetNextBuildNumber(number int) (*http.Response, error) {
+	return j.Request("POST", fmt.Sprintf("nextbuildnumber/submit?nextBuildNumber=%d", number), nil)
 }
 
 func (j *JobItem) GetParameters() ([]*ParameterDefinition, error) {
