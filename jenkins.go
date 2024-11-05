@@ -31,6 +31,7 @@ type Jenkins struct {
 	Nodes       *NodeService
 	Queue       *QueueService
 	Views       *ViewService
+	Debug       bool
 }
 
 type Crumb struct {
@@ -110,6 +111,7 @@ func NewClient(url, user, password string) (*Jenkins, error) {
 	auth := user + ":" + password
 	c.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
 	c.Header.Set("Accept", "application/json")
+	c.Header.Set("Content-Type", "application/xml; charset=UTF-8")
 	c.Credentials = NewCredentialService(c)
 	c.Nodes = NewNodeService(c)
 	c.Queue = NewQueueService(c)
@@ -185,15 +187,28 @@ func (c *Jenkins) doRequest(method, url string, body io.Reader) (*http.Response,
 		return nil, err
 	}
 	req.Header = c.Header
-
+	if c.Debug {
+		defer printRequest(req)
+	}
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
+
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("%s: %s", resp.Status, url)
+		data, err := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s: %s, %s, %s", resp.Status, url, data, err)
 	}
 	return resp, nil
+}
+
+func printRequest(req *http.Request) {
+	fmt.Printf("%s: %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
+	fmt.Printf("Host: %s\n", req.Host)
+	fmt.Printf("Content-Length: %d\n", req.ContentLength)
+	for k, v := range req.Header {
+		fmt.Printf("%s: %s\n", k, strings.Join(v, ","))
+	}
 }
 
 // Get job with fullname:
