@@ -1,7 +1,6 @@
 package jenkins
 
 import (
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -181,7 +180,7 @@ func (c *Jenkins) GetCrumb() (*Crumb, error) {
 		return nil, err
 	}
 	req.Header = c.Header
-	resp, err := c.client.Do(req)
+	resp, err := c.Client().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +220,7 @@ func (c *Jenkins) doRequest(method, url string, body io.Reader) (*http.Response,
 	if c.Debug {
 		defer printRequest(req)
 	}
-	resp, err := c.client.Do(req)
+	resp, err := c.Client().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -400,9 +399,9 @@ func (o *ApiJsonOpts) Encode() string {
 //
 //	// bind json data to map
 //	data := make(map[string]string)
-//	client.BindAPIJson(jenkins.ReqParams{"tree":"description"}, &data)
+//	client.ApiJson(jenkins.ReqParams{"tree":"description"}, &data)
 //	fmt.Println(data["description"])
-func (c *Jenkins) BindAPIJson(v interface{}, opts *ApiJsonOpts) error {
+func (c *Jenkins) ApiJson(v interface{}, opts *ApiJsonOpts) error {
 	return unmarshalApiJson(c, v, opts)
 }
 
@@ -427,11 +426,9 @@ func unmarshalApiJson(r Requester, v interface{}, opts *ApiJsonOpts) error {
 }
 
 func (c *Jenkins) ValidateJenkinsfile(content string) (string, error) {
-	data, err := json.Marshal(map[string]string{"jenkinsfile": content})
-	if err != nil {
-		return "", err
-	}
-	return readResponseToString(c, "POST", "pipeline-model-converter/validate", bytes.NewBuffer(data))
+	v := url.Values{}
+	v.Add("jenkinsfile", content)
+	return readResponseToString(c, "POST", "pipeline-model-converter/validate?"+v.Encode(), nil)
 }
 func readResponseToString(r Requester, method, url string, body io.Reader) (string, error) {
 	resp, err := r.Request(method, url, body)
@@ -446,10 +443,8 @@ func readResponseToString(r Requester, method, url string, body io.Reader) (stri
 	return string(data), nil
 }
 
-func (c *Jenkins) RunScript(content string) (string, error) {
-	data, err := json.Marshal(map[string]string{"jenkinsfile": content})
-	if err != nil {
-		return "", err
-	}
-	return readResponseToString(c, "POST", "scriptText", bytes.NewBuffer(data))
+func (c *Jenkins) RunScript(script string) (string, error) {
+	v := url.Values{}
+	v.Add("script", script)
+	return readResponseToString(c, "POST", "scriptText?"+v.Encode(), nil)
 }

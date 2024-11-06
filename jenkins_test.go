@@ -316,17 +316,17 @@ func TestQuiteDown(t *testing.T) {
 		Class        string `json:"_class"`
 		QuietingDown bool   `json:"quietingDown"`
 	}
-	assert.Nil(t, client.BindAPIJson(&status, nil))
+	assert.Nil(t, client.ApiJson(&status, nil))
 	assert.False(t, status.QuietingDown)
 	// set quite down
 	_, err := client.QuiteDown()
 	assert.Nil(t, err)
-	assert.Nil(t, client.BindAPIJson(&status, nil))
+	assert.Nil(t, client.ApiJson(&status, nil))
 	assert.True(t, status.QuietingDown)
 	// cancel quite down
 	_, err = client.CancelQuiteDown()
 	assert.Nil(t, err)
-	assert.Nil(t, client.BindAPIJson(&status, nil))
+	assert.Nil(t, client.ApiJson(&status, nil))
 	assert.False(t, status.QuietingDown)
 }
 
