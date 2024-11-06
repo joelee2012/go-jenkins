@@ -10,16 +10,6 @@ type ViewService struct {
 	*Item
 }
 
-func NewViewService(v interface{}) *ViewService {
-	if c, ok := v.(*Jenkins); ok {
-		return &ViewService{Item: NewItem(c.URL, "Views", c)}
-	}
-	if c, ok := v.(*JobItem); ok {
-		return &ViewService{Item: NewItem(c.URL, "Views", c.jenkins)}
-	}
-	return nil
-}
-
 func (v *ViewService) Get(name string) (*View, error) {
 	jobJson := &Job{}
 	if err := v.BindAPIJson(jobJson, &ApiJsonOpts{Tree: "views[name,url,description]"}); err != nil {

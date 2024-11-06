@@ -49,7 +49,7 @@ func (q *OneQueueItem) GetBuild() (*BuildItem, error) {
 }
 
 func (q *OneQueueItem) getWaitingBuild() (*BuildItem, error) {
-	builds, err := q.jenkins.Nodes.GetBuilds()
+	builds, err := q.jenkins.Nodes().GetBuilds()
 	if err != nil {
 		return nil, err
 	}
@@ -71,10 +71,6 @@ func (q *OneQueueItem) getWaitingBuild() (*BuildItem, error) {
 
 type QueueService struct {
 	*Item
-}
-
-func NewQueueService(c *Jenkins) *QueueService {
-	return &QueueService{Item: NewItem(c.URL+"queue/", "Queue", c)}
 }
 
 func (q *QueueService) List() ([]*OneQueueItem, error) {

@@ -9,17 +9,6 @@ type CredentialService struct {
 	*Item
 }
 
-func NewCredentialService(v interface{}) *CredentialService {
-	if c, ok := v.(*Jenkins); ok {
-		return &CredentialService{Item: NewItem(c.URL+"credentials/store/system/domain/_/", "Credentials", c)}
-	}
-
-	if c, ok := v.(*JobItem); ok {
-		return &CredentialService{Item: NewItem(c.URL+"credentials/store/folder/domain/_/", "Credentials", c.jenkins)}
-	}
-	return nil
-}
-
 func (cs *CredentialService) Get(name string) (*Credential, error) {
 	var credsJson Credentials
 	if err := cs.BindAPIJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {

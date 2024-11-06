@@ -88,7 +88,7 @@ var (
 func setup() error {
 	log.Println("execute setup function")
 	var err error
-	client, err = NewClient(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
+	client, err = New(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
 	if err != nil {
 		return err
 	}
@@ -272,7 +272,7 @@ func TestBuildJobWithParameters(t *testing.T) {
 }
 
 func TestSystemCredentials(t *testing.T) {
-	cm := client.Credentials
+	cm := client.credentials
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)

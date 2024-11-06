@@ -8,28 +8,28 @@ import (
 )
 
 func TestViewServiceGet(t *testing.T) {
-	v, err := client.Views.Get("all")
+	v, err := client.Views().Get("all")
 	assert.Nil(t, err)
 	assert.NotNil(t, v)
 	assert.Equal(t, v.Name, "all")
 }
 
 func TestViewServiceCreate(t *testing.T) {
-	v, err := folder.Views.Get("testview")
+	v, err := folder.Views().Get("testview")
 	assert.Nil(t, err)
 	assert.Empty(t, v)
 
 	// create view
-	_, err = folder.Views.Create("testview", strings.NewReader(viewConf))
+	_, err = folder.Views().Create("testview", strings.NewReader(viewConf))
 	assert.Nil(t, err)
-	v, err = folder.Views.Get("testview")
+	v, err = folder.Views().Get("testview")
 	assert.Nil(t, err)
 	assert.NotNil(t, v)
 	assert.Equal(t, v.Name, "testview")
 	assert.Equal(t, v.Description, "test")
 
 	// list views
-	views, err := folder.Views.List()
+	views, err := folder.Views().List()
 	assert.Nil(t, err)
 	assert.Len(t, views, 2)
 

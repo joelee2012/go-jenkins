@@ -27,10 +27,10 @@ type Jenkins struct {
 	client      *http.Client
 	Header      http.Header
 	Crumb       *Crumb
-	Credentials *CredentialService
-	Nodes       *NodeService
-	Queue       *QueueService
-	Views       *ViewService
+	credentials *CredentialService
+	nodes       *NodeService
+	queue       *QueueService
+	views       *ViewService
 	Debug       bool
 }
 
@@ -51,7 +51,7 @@ type Crumb struct {
 //	)
 //
 //	func main() {
-//		client, err := jenkins.NewClient("http://localhost:8080/", "admin", "1234")
+//		client, err := jenkins.New("http://localhost:8080/", "admin", "1234")
 //		if err != nil {
 //			log.Fatalln(err)
 //		}
@@ -99,24 +99,54 @@ type Crumb struct {
 //			return nil
 //		})
 //	}
-func NewClient(url, user, password string) (*Jenkins, error) {
+func New(url, user, password string) (*Jenkins, error) {
 	url = appendSlash(url)
 	c := &Jenkins{URL: url, Header: make(http.Header)}
-	// disable redirect for Job.Rename() and Move()
-	c.client = &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
 	auth := user + ":" + password
 	c.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
 	c.Header.Set("Accept", "application/json")
 	c.Header.Set("Content-Type", "application/xml; charset=UTF-8")
-	c.Credentials = NewCredentialService(c)
-	c.Nodes = NewNodeService(c)
-	c.Queue = NewQueueService(c)
-	c.Views = NewViewService(c)
 	return c, nil
+}
+
+func (j *Jenkins) Client() *http.Client {
+	if j.client == nil {
+		// disable redirect for Job.Rename() and Move()
+		j.client = &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		}
+	}
+	return j.client
+}
+
+func (j *Jenkins) Nodes() *NodeService {
+	if j.nodes == nil {
+		j.nodes = &NodeService{Item: NewItem(j.URL+"computer/", "Nodes", j)}
+	}
+	return j.nodes
+}
+
+func (j *Jenkins) Views() *ViewService {
+	if j.views == nil {
+		j.views = &ViewService{Item: NewItem(j.URL, "Views", j)}
+	}
+	return j.views
+}
+
+func (j *Jenkins) Credentials() *CredentialService {
+	if j.credentials == nil {
+		j.credentials = &CredentialService{Item: NewItem(j.URL+"credentials/store/system/domain/_/", "Credentials", j)}
+	}
+	return j.credentials
+}
+
+func (j *Jenkins) Queue() *QueueService {
+	if j.queue == nil {
+		j.queue = &QueueService{Item: NewItem(j.URL+"queue/", "Queue", j)}
+	}
+	return j.queue
 }
 
 // Set content type for request, default is 'application/json'

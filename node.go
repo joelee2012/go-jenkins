@@ -12,10 +12,6 @@ type NodeService struct {
 
 var nodeNameMap = map[string]string{"master": "(master)", "Built-In Node": "(built-in)"}
 
-func NewNodeService(client *Jenkins) *NodeService {
-	return &NodeService{Item: NewItem(client.URL+"computer/", "Nodes", client)}
-}
-
 func (ns *NodeService) GetBuilds() ([]*BuildItem, error) {
 	compSet := &ComputerSet{}
 	var builds []*BuildItem

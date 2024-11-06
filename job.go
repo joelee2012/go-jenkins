@@ -13,8 +13,8 @@ import (
 
 type JobItem struct {
 	*Item
-	Credentials     *CredentialService
-	Views           *ViewService
+	credentials     *CredentialService
+	views           *ViewService
 	Name            string
 	FullName        string
 	FullDisplayName string
@@ -22,10 +22,22 @@ type JobItem struct {
 
 func NewJobItem(url, class string, client *Jenkins) *JobItem {
 	j := &JobItem{Item: NewItem(url, class, client)}
-	j.Credentials = NewCredentialService(j)
-	j.Views = NewViewService(j)
 	j.setName()
 	return j
+}
+
+func (j *JobItem) Views() *ViewService {
+	if j.views == nil {
+		j.views = &ViewService{Item: NewItem(j.URL, "Views", j.jenkins)}
+	}
+	return j.views
+}
+
+func (j *JobItem) Credentials() *CredentialService {
+	if j.credentials == nil {
+		j.credentials = &CredentialService{Item: NewItem(j.URL+"credentials/store/folder/domain/_/", "Credentials", j.jenkins)}
+	}
+	return j.credentials
 }
 
 func (j *JobItem) Rename(name string) error {
