@@ -12,7 +12,7 @@ type ViewService struct {
 
 func (v *ViewService) Get(name string) (*View, error) {
 	jobJson := &Job{}
-	if err := v.BindAPIJson(jobJson, &ApiJsonOpts{Tree: "views[name,url,description]"}); err != nil {
+	if err := v.ApiJson(jobJson, &ApiJsonOpts{Tree: "views[name,url,description]"}); err != nil {
 		return nil, err
 	}
 	for _, view := range jobJson.Views {
@@ -62,7 +62,7 @@ func (v *ViewService) SetDescription(name, description string) (*http.Response, 
 
 func (v *ViewService) List() ([]*View, error) {
 	jobJson := &Job{}
-	if err := v.BindAPIJson(jobJson, &ApiJsonOpts{Tree: "views[name,url,description]"}); err != nil {
+	if err := v.ApiJson(jobJson, &ApiJsonOpts{Tree: "views[name,url,description]"}); err != nil {
 		return nil, err
 	}
 	return jobJson.Views, nil

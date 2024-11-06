@@ -16,7 +16,7 @@ func (ns *NodeService) GetBuilds() ([]*BuildItem, error) {
 	compSet := &ComputerSet{}
 	var builds []*BuildItem
 	tree := "computer[executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]]"
-	if err := ns.BindAPIJson(compSet, &ApiJsonOpts{Tree: tree, Depth: 2}); err != nil {
+	if err := ns.ApiJson(compSet, &ApiJsonOpts{Tree: tree, Depth: 2}); err != nil {
 		return nil, err
 	}
 	buildConf := map[string]string{}
@@ -43,7 +43,7 @@ func (ns *NodeService) GetBuilds() ([]*BuildItem, error) {
 
 func (ns *NodeService) Get(name string) (*Computer, error) {
 	compSet := &ComputerSet{}
-	if err := ns.BindAPIJson(compSet, nil); err != nil {
+	if err := ns.ApiJson(compSet, nil); err != nil {
 		return nil, err
 	}
 
@@ -57,7 +57,7 @@ func (ns *NodeService) Get(name string) (*Computer, error) {
 
 func (ns *NodeService) List() ([]*Computer, error) {
 	compSet := &ComputerSet{}
-	if err := ns.BindAPIJson(compSet, nil); err != nil {
+	if err := ns.ApiJson(compSet, nil); err != nil {
 		return nil, err
 	}
 	return compSet.Computers, nil

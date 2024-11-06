@@ -41,13 +41,13 @@ func (b *BuildItem) IsBuilding() (bool, error) {
 		Class    string `json:"_class"`
 		Building bool   `json:"building"`
 	}
-	err := b.BindAPIJson(&build, &ApiJsonOpts{Tree: "building"})
+	err := b.ApiJson(&build, &ApiJsonOpts{Tree: "building"})
 	return build.Building, err
 }
 
 func (b *BuildItem) GetResult() (string, error) {
 	status := make(map[string]string)
-	err := b.BindAPIJson(&status, &ApiJsonOpts{Tree: "result"})
+	err := b.ApiJson(&status, &ApiJsonOpts{Tree: "result"})
 	return status["result"], err
 }
 
@@ -112,7 +112,7 @@ func (b *BuildItem) LoopProgressiveLog(kind string, f func(data []byte) error) e
 
 func (b *BuildItem) GetDescription() (string, error) {
 	data := make(map[string]string)
-	if err := b.BindAPIJson(&data, &ApiJsonOpts{Tree: "description"}); err != nil {
+	if err := b.ApiJson(&data, &ApiJsonOpts{Tree: "description"}); err != nil {
 		return "", err
 	}
 	return data["description"], nil

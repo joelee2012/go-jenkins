@@ -23,7 +23,7 @@ func NewItem(url, class string, client *Jenkins) *Item {
 	return &Item{URL: url, Class: parseClass(class), jenkins: client}
 }
 
-func (i *Item) BindAPIJson(v interface{}, opts *ApiJsonOpts) error {
+func (i *Item) ApiJson(v any, opts *ApiJsonOpts) error {
 	return unmarshalApiJson(i, v, opts)
 }
 
@@ -54,7 +54,7 @@ func parseId(url string) int {
 	return id
 }
 
-func prettyPrintJson(v interface{}) {
+func prettyPrintJson(v any) {
 	json, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		log.Fatal(err)

@@ -105,7 +105,7 @@ func (j *JobItem) IsBuildable() (bool, error) {
 		Class     string `json:"_class"`
 		Buildable bool   `json:"buildable"`
 	}
-	err := j.BindAPIJson(&job, &ApiJsonOpts{Tree: "buildable"})
+	err := j.ApiJson(&job, &ApiJsonOpts{Tree: "buildable"})
 	return job.Buildable, err
 }
 
@@ -118,7 +118,7 @@ func (j *JobItem) setName() {
 
 func (j *JobItem) GetDescription() (string, error) {
 	data := make(map[string]string)
-	if err := j.BindAPIJson(&data, &ApiJsonOpts{Tree: "description"}); err != nil {
+	if err := j.ApiJson(&data, &ApiJsonOpts{Tree: "description"}); err != nil {
 		return "", err
 	}
 	return data["description"], nil
@@ -158,7 +158,7 @@ func (j *JobItem) GetBuild(number int) (*BuildItem, error) {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}
 	jobJson := &Job{}
-	if err := j.BindAPIJson(&jobJson, &ApiJsonOpts{Tree: "builds[number,url]"}); err != nil {
+	if err := j.ApiJson(&jobJson, &ApiJsonOpts{Tree: "builds[number,url]"}); err != nil {
 		return nil, err
 	}
 
@@ -175,7 +175,7 @@ func (j *JobItem) Get(name string) (*JobItem, error) {
 		return nil, fmt.Errorf("%s have no jobs", j)
 	}
 	var folderJson Job
-	if err := j.BindAPIJson(&folderJson, &ApiJsonOpts{Tree: "jobs[url,name]"}); err != nil {
+	if err := j.ApiJson(&folderJson, &ApiJsonOpts{Tree: "jobs[url,name]"}); err != nil {
 		return nil, err
 	}
 	for _, job := range folderJson.Jobs {
@@ -203,7 +203,7 @@ func (j *JobItem) List(depth int) ([]*JobItem, error) {
 	}
 	var folderJson Job
 
-	if err := j.BindAPIJson(&folderJson, &ApiJsonOpts{Tree: query}); err != nil {
+	if err := j.ApiJson(&folderJson, &ApiJsonOpts{Tree: query}); err != nil {
 		return nil, err
 	}
 	var jobs []*JobItem
@@ -250,7 +250,7 @@ func (j *JobItem) GetBuildByName(name string) (*BuildItem, error) {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}
 	var jobJson map[string]json.RawMessage
-	if err := j.BindAPIJson(&jobJson, &ApiJsonOpts{Tree: name + "[url]"}); err != nil {
+	if err := j.ApiJson(&jobJson, &ApiJsonOpts{Tree: name + "[url]"}); err != nil {
 		return nil, err
 	}
 	if string(jobJson[name]) == "null" {
@@ -274,7 +274,7 @@ func (j *JobItem) ListBuilds() ([]*BuildItem, error) {
 	}
 	var jobJson Job
 	var builds []*BuildItem
-	if err := j.BindAPIJson(&jobJson, &ApiJsonOpts{Tree: "builds[url]"}); err != nil {
+	if err := j.ApiJson(&jobJson, &ApiJsonOpts{Tree: "builds[url]"}); err != nil {
 		return nil, err
 	}
 
@@ -290,7 +290,7 @@ func (j *JobItem) SetNextBuildNumber(number int) (*http.Response, error) {
 
 func (j *JobItem) GetParameters() ([]*ParameterDefinition, error) {
 	jobJson := &Job{}
-	if err := j.BindAPIJson(jobJson, nil); err != nil {
+	if err := j.ApiJson(jobJson, nil); err != nil {
 		return nil, err
 	}
 	for _, p := range jobJson.Property {

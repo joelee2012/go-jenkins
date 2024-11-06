@@ -401,11 +401,11 @@ func (o *ApiJsonOpts) Encode() string {
 //	data := make(map[string]string)
 //	client.ApiJson(jenkins.ReqParams{"tree":"description"}, &data)
 //	fmt.Println(data["description"])
-func (c *Jenkins) ApiJson(v interface{}, opts *ApiJsonOpts) error {
+func (c *Jenkins) ApiJson(v any, opts *ApiJsonOpts) error {
 	return unmarshalApiJson(c, v, opts)
 }
 
-func unmarshalApiJson(r Requester, v interface{}, opts *ApiJsonOpts) error {
+func unmarshalApiJson(r Requester, v any, opts *ApiJsonOpts) error {
 	entry := "api/json"
 	if opts != nil {
 		entry = "api/json?" + opts.Encode()

@@ -11,7 +11,7 @@ type CredentialService struct {
 
 func (cs *CredentialService) Get(name string) (*Credential, error) {
 	var credsJson Credentials
-	if err := cs.BindAPIJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
+	if err := cs.ApiJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err
 	}
 	if credsJson.Credentials != nil {
@@ -42,7 +42,7 @@ func (cs *CredentialService) SetConfigure(name string, xml io.Reader) (*http.Res
 
 func (cs *CredentialService) List() ([]*Credential, error) {
 	var credsJson Credentials
-	if err := cs.BindAPIJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
+	if err := cs.ApiJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err
 	}
 	return credsJson.Credentials, nil

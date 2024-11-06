@@ -272,7 +272,7 @@ func TestBuildJobWithParameters(t *testing.T) {
 }
 
 func TestSystemCredentials(t *testing.T) {
-	cm := client.credentials
+	cm := client.Credentials()
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
