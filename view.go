@@ -6,11 +6,11 @@ import (
 	"net/url"
 )
 
-type ViewService struct {
+type Views struct {
 	*Item
 }
 
-func (v *ViewService) Get(name string) (*ViewJson, error) {
+func (v *Views) Get(name string) (*ViewJson, error) {
 	jobJson := &JobJson{}
 	if err := v.ApiJson(jobJson, &ApiJsonOpts{Tree: "views[name,url,description]"}); err != nil {
 		return nil, err
@@ -23,44 +23,44 @@ func (v *ViewService) Get(name string) (*ViewJson, error) {
 	return nil, nil
 }
 
-func (v *ViewService) Create(name string, xml io.Reader) (*http.Response, error) {
+func (v *Views) Create(name string, xml io.Reader) (*http.Response, error) {
 	p := url.Values{}
 	p.Add("name", name)
 	return v.Request("POST", "createView?"+p.Encode(), xml)
 }
-func (v *ViewService) Delete(name string) (*http.Response, error) {
+func (v *Views) Delete(name string) (*http.Response, error) {
 	return v.Request("POST", "view/"+name+"/doDelete", nil)
 }
 
-func (v *ViewService) AddJobToView(name, jobName string) (*http.Response, error) {
+func (v *Views) AddJobToView(name, jobName string) (*http.Response, error) {
 	p := url.Values{}
 	p.Add("name", jobName)
 	return v.Request("POST", "view/"+name+"/addJobToView?"+p.Encode(), nil)
 }
 
-func (v *ViewService) RemoveJobFromView(name, jobName string) (*http.Response, error) {
+func (v *Views) RemoveJobFromView(name, jobName string) (*http.Response, error) {
 	p := url.Values{}
 	p.Add("name", jobName)
 	return v.Request("POST", "view/"+name+"/removeJobFromView?"+p.Encode(), nil)
 }
 
-func (v *ViewService) GetConfigure(name string) (string, error) {
+func (v *Views) GetConfigure(name string) (string, error) {
 	return readResponseToString(v, "GET", "view/"+name+"/config.xml", nil)
 }
 
-func (v *ViewService) SetConfigure(name string, xml io.Reader) (*http.Response, error) {
+func (v *Views) SetConfigure(name string, xml io.Reader) (*http.Response, error) {
 	p := url.Values{}
 	p.Add("name", name)
 	return v.Request("POST", "view/"+name+"/config.xml?"+p.Encode(), xml)
 }
 
-func (v *ViewService) SetDescription(name, description string) (*http.Response, error) {
+func (v *Views) SetDescription(name, description string) (*http.Response, error) {
 	p := url.Values{}
 	p.Add("description", description)
 	return v.Request("POST", "view/"+name+"/submitDescription?"+p.Encode(), nil)
 }
 
-func (v *ViewService) List() ([]*ViewJson, error) {
+func (v *Views) List() ([]*ViewJson, error) {
 	jobJson := &JobJson{}
 	if err := v.ApiJson(jobJson, &ApiJsonOpts{Tree: "views[name,url,description]"}); err != nil {
 		return nil, err

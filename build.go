@@ -69,7 +69,7 @@ func (b *BuildItem) Term() (*http.Response, error) {
 
 var re = regexp.MustCompile(`\w+[/]?$`)
 
-func (b *BuildItem) GetJob() (*JobItem, error) {
+func (b *BuildItem) GetJob() (*Job, error) {
 	jobName, _ := b.jenkins.URL2Name(re.ReplaceAllLiteralString(b.URL, ""))
 	return b.jenkins.GetJob(jobName)
 }

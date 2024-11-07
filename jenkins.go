@@ -22,10 +22,10 @@ type Jenkins struct {
 	*Item
 	client      *http.Client
 	crumb       *Crumb
-	credentials *CredentialService
-	nodes       *NodeService
-	queue       *QueueService
-	views       *ViewService
+	credentials *Credentials
+	nodes       *Nodes
+	queue       *Queue
+	views       *Views
 	Header      http.Header
 	Debug       bool
 }
@@ -121,30 +121,30 @@ func (j *Jenkins) Client() *http.Client {
 	return j.client
 }
 
-func (j *Jenkins) Nodes() *NodeService {
+func (j *Jenkins) Nodes() *Nodes {
 	if j.nodes == nil {
-		j.nodes = &NodeService{Item: NewItem(j.URL+"computer/", "Nodes", j)}
+		j.nodes = &Nodes{Item: NewItem(j.URL+"computer/", "Nodes", j)}
 	}
 	return j.nodes
 }
 
-func (j *Jenkins) Views() *ViewService {
+func (j *Jenkins) Views() *Views {
 	if j.views == nil {
-		j.views = &ViewService{Item: NewItem(j.URL, "Views", j)}
+		j.views = &Views{Item: NewItem(j.URL, "Views", j)}
 	}
 	return j.views
 }
 
-func (j *Jenkins) Credentials() *CredentialService {
+func (j *Jenkins) Credentials() *Credentials {
 	if j.credentials == nil {
-		j.credentials = &CredentialService{Item: NewItem(j.URL+"credentials/store/system/domain/_/", "Credentials", j)}
+		j.credentials = &Credentials{Item: NewItem(j.URL+"credentials/store/system/domain/_/", "Credentials", j)}
 	}
 	return j.credentials
 }
 
-func (j *Jenkins) Queue() *QueueService {
+func (j *Jenkins) Queue() *Queue {
 	if j.queue == nil {
-		j.queue = &QueueService{Item: NewItem(j.URL+"queue/", "Queue", j)}
+		j.queue = &Queue{Item: NewItem(j.URL+"queue/", "Queue", j)}
 	}
 	return j.queue
 }
@@ -218,7 +218,7 @@ func printRequest(req *http.Request) {
 //		return err
 //	}
 //	fmt.Println(job)
-func (c *Jenkins) GetJob(fullName string) (*JobItem, error) {
+func (c *Jenkins) GetJob(fullName string) (*Job, error) {
 	folder, shortName := c.resolveJob(fullName)
 	return folder.Get(shortName)
 }
@@ -254,13 +254,13 @@ func (c *Jenkins) CreateJob(fullName string, xml io.Reader) (*http.Response, err
 }
 
 func (c *Jenkins) DeleteJob(fullName string) (*http.Response, error) {
-	return NewJobItem(c.Name2URL(fullName), "Job", c).Delete()
+	return NewJob(c.Name2URL(fullName), "Job", c).Delete()
 }
 
-func (c *Jenkins) resolveJob(fullName string) (*JobItem, string) {
+func (c *Jenkins) resolveJob(fullName string) (*Job, string) {
 	dir, name := path.Split(strings.Trim(fullName, "/"))
 	url := c.Name2URL(dir)
-	return NewJobItem(url, "Folder", c), name
+	return NewJob(url, "Folder", c), name
 }
 
 // Covert fullname to url, eg:
@@ -302,12 +302,12 @@ func (c *Jenkins) GetVersion() (string, error) {
 //	// with parameters
 //	jenkins.BuildJob("your job", jenkins.ReqParams{"ARG1": "ARG1_VALUE"})
 func (c *Jenkins) BuildJob(fullName string, params url.Values) (*OneQueueItem, error) {
-	return NewJobItem(c.Name2URL(fullName), "Job", c).Build(params)
+	return NewJob(c.Name2URL(fullName), "Job", c).Build(params)
 }
 
 // List job with depth
-func (c *Jenkins) ListJobs(depth int) ([]*JobItem, error) {
-	job := NewJobItem(c.URL, "Folder", c)
+func (c *Jenkins) ListJobs(depth int) ([]*Job, error) {
+	job := NewJob(c.URL, "Folder", c)
 	return job.List(depth)
 }
 

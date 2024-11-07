@@ -5,11 +5,11 @@ import (
 	"net/http"
 )
 
-type CredentialService struct {
+type Credentials struct {
 	*Item
 }
 
-func (cs *CredentialService) Get(name string) (*CredentialJson, error) {
+func (cs *Credentials) Get(name string) (*CredentialJson, error) {
 	var credsJson CredentialsJson
 	if err := cs.ApiJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err
@@ -24,23 +24,23 @@ func (cs *CredentialService) Get(name string) (*CredentialJson, error) {
 	return nil, nil
 }
 
-func (cs *CredentialService) Create(xml io.Reader) (*http.Response, error) {
+func (cs *Credentials) Create(xml io.Reader) (*http.Response, error) {
 	return cs.Request("POST", "createCredentials", xml)
 }
 
-func (cs *CredentialService) Delete(name string) (*http.Response, error) {
+func (cs *Credentials) Delete(name string) (*http.Response, error) {
 	return cs.Request("POST", "credential/"+name+"/doDelete", nil)
 }
 
-func (cs *CredentialService) GetConfigure(name string) (string, error) {
+func (cs *Credentials) GetConfigure(name string) (string, error) {
 	return readResponseToString(cs, "GET", "credential/"+name+"/config.xml", nil)
 }
 
-func (cs *CredentialService) SetConfigure(name string, xml io.Reader) (*http.Response, error) {
+func (cs *Credentials) SetConfigure(name string, xml io.Reader) (*http.Response, error) {
 	return cs.Request("POST", "credential/"+name+"/config.xml", xml)
 }
 
-func (cs *CredentialService) List() ([]*CredentialJson, error) {
+func (cs *Credentials) List() ([]*CredentialJson, error) {
 	var credsJson CredentialsJson
 	if err := cs.ApiJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err

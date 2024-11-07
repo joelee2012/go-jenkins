@@ -14,9 +14,9 @@ import (
 
 var (
 	jenkins   *Jenkins
-	folder    *JobItem
-	pipeline  *JobItem
-	pipeline2 *JobItem
+	folder    *Job
+	pipeline  *Job
+	pipeline2 *Job
 	jobConf   = `<?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job">
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">

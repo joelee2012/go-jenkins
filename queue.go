@@ -19,7 +19,7 @@ func NewQueueItem(url string, jenkins *Jenkins) *OneQueueItem {
 	}
 }
 
-func (q *OneQueueItem) GetJob() (*JobItem, error) {
+func (q *OneQueueItem) GetJob() (*Job, error) {
 	var queueJson QueueItem
 	if err := q.ApiJson(&queueJson, nil); err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func (q *OneQueueItem) GetJob() (*JobItem, error) {
 	if parseClass(queueJson.Class) == "BuildableItem" {
 		return q.build.GetJob()
 	}
-	return NewJobItem(queueJson.Task.URL, queueJson.Task.Class, q.jenkins), nil
+	return NewJob(queueJson.Task.URL, queueJson.Task.Class, q.jenkins), nil
 }
 
 func (q *OneQueueItem) GetBuild() (*BuildItem, error) {
@@ -69,11 +69,11 @@ func (q *OneQueueItem) getWaitingBuild() (*BuildItem, error) {
 	return nil, nil
 }
 
-type QueueService struct {
+type Queue struct {
 	*Item
 }
 
-func (q *QueueService) List() ([]*OneQueueItem, error) {
+func (q *Queue) List() ([]*OneQueueItem, error) {
 	queue := &QueueJson{}
 	if err := q.ApiJson(queue, nil); err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (q *QueueService) List() ([]*OneQueueItem, error) {
 	return items, nil
 }
 
-func (q *QueueService) Get(id int) (*OneQueueItem, error) {
+func (q *Queue) Get(id int) (*OneQueueItem, error) {
 	var queue QueueJson
 	if err := q.ApiJson(&queue, nil); err != nil {
 		return nil, err
@@ -98,6 +98,6 @@ func (q *QueueService) Get(id int) (*OneQueueItem, error) {
 	return nil, nil
 }
 
-func (q *QueueService) Cancel(id int) (*http.Response, error) {
+func (q *Queue) Cancel(id int) (*http.Response, error) {
 	return q.Request("POST", fmt.Sprintf("cancelItem?id=%d", id), nil)
 }
