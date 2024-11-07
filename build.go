@@ -8,16 +8,16 @@ import (
 	"regexp"
 )
 
-type BuildItem struct {
+type Build struct {
 	*Item
 	Number int
 }
 
-func NewBuildItem(url, class string, jenkins *Jenkins) *BuildItem {
-	return &BuildItem{Item: NewItem(url, class, jenkins), Number: parseId(url)}
+func NewBuild(url, class string, jenkins *Jenkins) *Build {
+	return &Build{Item: NewItem(url, class, jenkins), Number: parseId(url)}
 }
 
-func (b *BuildItem) LoopLog(f func(line string) error) error {
+func (b *Build) LoopLog(f func(line string) error) error {
 	resp, err := b.Request("GET", "consoleText", nil)
 	if err != nil {
 		return err
@@ -36,7 +36,7 @@ func (b *BuildItem) LoopLog(f func(line string) error) error {
 	return nil
 }
 
-func (b *BuildItem) IsBuilding() (bool, error) {
+func (b *Build) IsBuilding() (bool, error) {
 	var build struct {
 		Class    string `json:"_class"`
 		Building bool   `json:"building"`
@@ -45,36 +45,36 @@ func (b *BuildItem) IsBuilding() (bool, error) {
 	return build.Building, err
 }
 
-func (b *BuildItem) GetResult() (string, error) {
+func (b *Build) GetResult() (string, error) {
 	status := make(map[string]string)
 	err := b.ApiJson(&status, &ApiJsonOpts{Tree: "result"})
 	return status["result"], err
 }
 
-func (b *BuildItem) Delete() (*http.Response, error) {
+func (b *Build) Delete() (*http.Response, error) {
 	return b.Request("POST", "doDelete", nil)
 }
 
-func (b *BuildItem) Stop() (*http.Response, error) {
+func (b *Build) Stop() (*http.Response, error) {
 	return b.Request("POST", "stop", nil)
 }
 
-func (b *BuildItem) Kill() (*http.Response, error) {
+func (b *Build) Kill() (*http.Response, error) {
 	return b.Request("POST", "kill", nil)
 }
 
-func (b *BuildItem) Term() (*http.Response, error) {
+func (b *Build) Term() (*http.Response, error) {
 	return b.Request("POST", "term", nil)
 }
 
 var re = regexp.MustCompile(`\w+[/]?$`)
 
-func (b *BuildItem) GetJob() (*Job, error) {
+func (b *Build) GetJob() (*Job, error) {
 	jobName, _ := b.jenkins.URL2Name(re.ReplaceAllLiteralString(b.URL, ""))
 	return b.jenkins.GetJob(jobName)
 }
 
-func (b *BuildItem) LoopProgressiveLog(kind string, f func(data []byte) error) error {
+func (b *Build) LoopProgressiveLog(kind string, f func(data []byte) error) error {
 	var entry string
 	switch kind {
 	case "html":
@@ -110,7 +110,7 @@ func (b *BuildItem) LoopProgressiveLog(kind string, f func(data []byte) error) e
 	return nil
 }
 
-func (b *BuildItem) GetDescription() (string, error) {
+func (b *Build) GetDescription() (string, error) {
 	data := make(map[string]string)
 	if err := b.ApiJson(&data, &ApiJsonOpts{Tree: "description"}); err != nil {
 		return "", err
@@ -118,7 +118,7 @@ func (b *BuildItem) GetDescription() (string, error) {
 	return data["description"], nil
 }
 
-func (b *BuildItem) SetDescription(description string) (*http.Response, error) {
+func (b *Build) SetDescription(description string) (*http.Response, error) {
 	v := url.Values{}
 	v.Add("description", description)
 	return b.Request("POST", "submitDescription?"+v.Encode(), nil)

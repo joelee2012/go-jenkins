@@ -8,7 +8,7 @@ import (
 type OneQueueItem struct {
 	*Item
 	ID    int
-	build *BuildItem
+	build *Build
 }
 
 func NewQueueItem(url string, jenkins *Jenkins) *OneQueueItem {
@@ -30,7 +30,7 @@ func (q *OneQueueItem) GetJob() (*Job, error) {
 	return NewJob(queueJson.Task.URL, queueJson.Task.Class, q.jenkins), nil
 }
 
-func (q *OneQueueItem) GetBuild() (*BuildItem, error) {
+func (q *OneQueueItem) GetBuild() (*Build, error) {
 	if q.build != nil {
 		return q.build, nil
 	}
@@ -41,14 +41,14 @@ func (q *OneQueueItem) GetBuild() (*BuildItem, error) {
 	var err error
 	switch parseClass(queueJson.Class) {
 	case "LeftItem":
-		q.build = NewBuildItem(queueJson.Executable.URL, queueJson.Executable.Class, q.jenkins)
+		q.build = NewBuild(queueJson.Executable.URL, queueJson.Executable.Class, q.jenkins)
 	case "BuildableItem", "WaitingItem":
 		q.build, err = q.getWaitingBuild()
 	}
 	return q.build, err
 }
 
-func (q *OneQueueItem) getWaitingBuild() (*BuildItem, error) {
+func (q *OneQueueItem) getWaitingBuild() (*Build, error) {
 	builds, err := q.jenkins.Nodes().GetBuilds()
 	if err != nil {
 		return nil, err

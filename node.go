@@ -12,9 +12,9 @@ type Nodes struct {
 
 var nodeNameMap = map[string]string{"master": "(master)", "Built-In Node": "(built-in)"}
 
-func (ns *Nodes) GetBuilds() ([]*BuildItem, error) {
+func (ns *Nodes) GetBuilds() ([]*Build, error) {
 	compSet := &ComputerSet{}
-	var builds []*BuildItem
+	var builds []*Build
 	tree := "computer[executors[currentExecutable[url]],oneOffExecutors[currentExecutable[url]]]"
 	if err := ns.ApiJson(compSet, &ApiJsonOpts{Tree: tree, Depth: 2}); err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func (ns *Nodes) GetBuilds() ([]*BuildItem, error) {
 		parseBuild(c.OneOffExecutors)
 	}
 	for k, v := range buildConf {
-		builds = append(builds, NewBuildItem(k, v, ns.jenkins))
+		builds = append(builds, NewBuild(k, v, ns.jenkins))
 	}
 	return builds, nil
 }

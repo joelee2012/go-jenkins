@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupBuild(t *testing.T) *BuildItem {
-	var build *BuildItem
+func setupBuild(t *testing.T) *Build {
+	var build *Build
 	build, err := pipeline.GetLastCompleteBuild()
 	assert.Nil(t, err)
 	if build != nil {
@@ -92,7 +92,7 @@ func TestStopBuildItem(t *testing.T) {
 	job, err := qitem.GetJob()
 	assert.Nil(t, err)
 	assert.Equal(t, job.FullName, pipeline.FullName)
-	var build *BuildItem
+	var build *Build
 	for {
 		time.Sleep(1 * time.Second)
 		build, err = qitem.GetBuild()

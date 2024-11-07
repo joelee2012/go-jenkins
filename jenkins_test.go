@@ -254,7 +254,7 @@ func TestBuildJobWithParameters(t *testing.T) {
 	v := url.Values{}
 	v.Add("ARG1", "ARG1_VALUE")
 	qitem, err := jenkins.BuildJob(pipeline2.FullName, v)
-	var build *BuildItem
+	var build *Build
 	assert.Nil(t, err)
 	for {
 		time.Sleep(1 * time.Second)

@@ -157,7 +157,7 @@ func (j *Job) Build(param url.Values) (*OneQueueItem, error) {
 	return NewQueueItem(url.String(), j.jenkins), nil
 }
 
-func (j *Job) GetBuild(number int) (*BuildItem, error) {
+func (j *Job) GetBuild(number int) (*Build, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}
@@ -168,7 +168,7 @@ func (j *Job) GetBuild(number int) (*BuildItem, error) {
 
 	for _, build := range jobJson.Builds {
 		if number == build.Number {
-			return NewBuildItem(build.URL, build.Class, j.jenkins), nil
+			return NewBuild(build.URL, build.Class, j.jenkins), nil
 		}
 	}
 	return nil, nil
@@ -187,7 +187,7 @@ func (j *Job) Get(name string) (*Job, error) {
 			return NewJob(job.URL, job.Class, j.jenkins), nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("No such job [%s]", name)
 }
 
 func (j *Job) Create(name string, xml io.Reader) (*http.Response, error) {
@@ -224,32 +224,32 @@ func (j *Job) List(depth int) ([]*Job, error) {
 	return jobs, nil
 }
 
-func (j *Job) GetFirstBuild() (*BuildItem, error) {
+func (j *Job) GetFirstBuild() (*Build, error) {
 	return j.GetBuildByName("firstBuild")
 }
-func (j *Job) GetLastBuild() (*BuildItem, error) {
+func (j *Job) GetLastBuild() (*Build, error) {
 	return j.GetBuildByName("lastBuild")
 }
-func (j *Job) GetLastCompleteBuild() (*BuildItem, error) {
+func (j *Job) GetLastCompleteBuild() (*Build, error) {
 	return j.GetBuildByName("lastCompletedBuild")
 }
-func (j *Job) GetLastFailedBuild() (*BuildItem, error) {
+func (j *Job) GetLastFailedBuild() (*Build, error) {
 	return j.GetBuildByName("lastFailedBuild")
 }
-func (j *Job) GetLastStableBuild() (*BuildItem, error) {
+func (j *Job) GetLastStableBuild() (*Build, error) {
 	return j.GetBuildByName("lastStableBuild")
 }
-func (j *Job) GetLastUnstableBuild() (*BuildItem, error) {
+func (j *Job) GetLastUnstableBuild() (*Build, error) {
 	return j.GetBuildByName("lastUnstableBuild")
 }
-func (j *Job) GetLastSuccessfulBuild() (*BuildItem, error) {
+func (j *Job) GetLastSuccessfulBuild() (*Build, error) {
 	return j.GetBuildByName("lastSuccessfulBuild")
 }
-func (j *Job) GetLastUnsucessfulBuild() (*BuildItem, error) {
+func (j *Job) GetLastUnsucessfulBuild() (*Build, error) {
 	return j.GetBuildByName("lastUnsuccessfulBuild")
 }
 
-func (j *Job) GetBuildByName(name string) (*BuildItem, error) {
+func (j *Job) GetBuildByName(name string) (*Build, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}
@@ -264,25 +264,25 @@ func (j *Job) GetBuildByName(name string) (*BuildItem, error) {
 	if err := json.Unmarshal(jobJson[name], build); err != nil {
 		return nil, err
 	}
-	return NewBuildItem(build.URL, build.Class, j.jenkins), nil
+	return NewBuild(build.URL, build.Class, j.jenkins), nil
 }
 
 func (j *Job) Delete() (*http.Response, error) {
 	return j.Request("POST", "doDelete", nil)
 }
 
-func (j *Job) ListBuilds() ([]*BuildItem, error) {
+func (j *Job) ListBuilds() ([]*Build, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}
 	var jobJson JobJson
-	var builds []*BuildItem
+	var builds []*Build
 	if err := j.ApiJson(&jobJson, &ApiJsonOpts{Tree: "builds[url]"}); err != nil {
 		return nil, err
 	}
 
 	for _, build := range jobJson.Builds {
-		builds = append(builds, NewBuildItem(build.URL, build.Class, j.jenkins))
+		builds = append(builds, NewBuild(build.URL, build.Class, j.jenkins))
 	}
 	return builds, nil
 }
