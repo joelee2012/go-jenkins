@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 	"strings"
 )
 
@@ -21,8 +20,6 @@ type JenkinsOpts struct {
 
 type Jenkins struct {
 	*Item
-	User        string
-	Password    string
 	client      *http.Client
 	Header      http.Header
 	Crumb       *Crumb
@@ -102,11 +99,14 @@ func New(url, user, password string) (*Jenkins, error) {
 	url = appendSlash(url)
 	c := &Jenkins{Header: make(http.Header)}
 	c.Item = NewItem(url, "Jenkins", c)
-	auth := user + ":" + password
-	c.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
+	c.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", user, password))))
 	c.Header.Set("Accept", "application/json")
 	c.Header.Set("Content-Type", "application/xml; charset=UTF-8")
 	return c, nil
+}
+
+func (j *Jenkins) SetClient(c *http.Client) {
+	j.client = c
 }
 
 func (j *Jenkins) Client() *http.Client {
@@ -149,29 +149,6 @@ func (j *Jenkins) Queue() *QueueService {
 	return j.queue
 }
 
-// Set content type for request, default is 'application/json'
-func (c *Jenkins) SetContentType(ctype string) {
-	if ctype == "" {
-		c.Header.Set("Accept", "application/json")
-	} else {
-		c.Header.Set("Accept", ctype)
-	}
-}
-
-func (c *Jenkins) SetBasicAuth(username, password string) {
-	auth := username + ":" + password
-	c.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
-}
-
-// func (j *Jenkins) DoRequest(url, method string, body io.Reader) (*http.Response, error) {
-// 	req, err := http.NewRequest(method, url, body)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	req.SetBasicAuth(j.User, j.Password)
-// 	return j.client.Do(req)
-// }
-
 func (c *Jenkins) GetCrumb() (*Crumb, error) {
 	if c.Crumb != nil {
 		return c.Crumb, nil
@@ -200,14 +177,6 @@ func (c *Jenkins) GetCrumb() (*Crumb, error) {
 	c.Header.Set("Cookie", resp.Header.Get("set-cookie"))
 	return c.Crumb, nil
 }
-
-// Send request to jenkins,
-//
-//	// send request to get JSON data of jenkins
-//	jenkins.Request("GET", "api/json")
-// func (c *Jenkins) Request(method, entry string, body io.Reader) (*http.Response, error) {
-// 	return c.doRequest(method, c.URL+entry, body)
-// }
 
 func (c *Jenkins) doRequest(method, url string, body io.Reader) (*http.Response, error) {
 	if _, err := c.GetCrumb(); err != nil {
@@ -284,13 +253,9 @@ func (c *Jenkins) CreateJob(fullName string, xml io.Reader) (*http.Response, err
 	return folder.Create(shortName, xml)
 }
 
-func (c *Jenkins) DeleteJob(fullName string) error {
+func (c *Jenkins) DeleteJob(fullName string) (*http.Response, error) {
 	return NewJobItem(c.Name2URL(fullName), "Job", c).Delete()
 }
-
-// func (c *Jenkins) String() string {
-// 	return fmt.Sprintf("<Jenkins: %s>", c.URL)
-// }
 
 func (c *Jenkins) resolveJob(fullName string) (*JobItem, string) {
 	dir, name := path.Split(strings.Trim(fullName, "/"))
@@ -374,36 +339,12 @@ func (c *Jenkins) ReloadJCasC() (*http.Response, error) {
 	return c.Request("POST", "configuration-as-code/reload", nil)
 }
 
-type ApiJsonOpts struct {
-	Tree  string
-	Depth int
-}
-
-func (o *ApiJsonOpts) Encode() string {
-	v := url.Values{}
-	if o.Tree != "" {
-		v.Add("tree", o.Tree)
-	}
-	v.Add("depth", strconv.Itoa(o.Depth))
-	return v.Encode()
-}
-
 // func (c *Jenkins) ExportJCasC(name string) error {
 // 	resp, err := c.Request("POST", "configuration-as-code/export")
 // 	if err != nil {
 // 		return err
 // 	}
 // 	return resp.ToFile(name)
-// }
-
-// Bind jenkins JSON data to interface,
-//
-//	// bind json data to map
-//	data := make(map[string]string)
-//	jenkins.ApiJson(jenkins.ReqParams{"tree":"description"}, &data)
-//	fmt.Println(data["description"])
-// func (c *Jenkins) ApiJson(v any, opts *ApiJsonOpts) error {
-// 	return unmarshalApiJson(c, v, opts)
 // }
 
 func unmarshalApiJson(r Requester, v any, opts *ApiJsonOpts) error {

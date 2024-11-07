@@ -33,17 +33,12 @@ jobs:
           password=$(sudo docker exec jenkins-master cat /var/jenkins_home/secrets/initialAdminPassword)
           version=$(sudo docker exec jenkins-master sh -c 'echo "$JENKINS_VERSION"')
           port=8080
-          echo "::set-output name=url::http://${ip}:${port}/"
-          echo "::set-output name=user::admin"
-          echo "::set-output name=password::${password}"
-          echo "::set-output name=version::${version}"
+          echo "JENKINS_URL=http://${ip}:${port}/" >> $GITHUB_ENV
+          echo "JENKINS_USER=admin" >> $GITHUB_ENV
+          echo "JENKINS_PASSWORD=${password}" >> $GITHUB_ENV
+          echo "JENKINS_VERSION=${version}" >> $GITHUB_ENV
 
       - name: Run go test
-        env:
-          JENKINS_URL: ${{ steps.start-jenkins.outputs.url  }}
-          JENKINS_USER: ${{ steps.start-jenkins.outputs.user  }}
-          JENKINS_PASSWORD: ${{ steps.start-jenkins.outputs.password  }}
-          JENKINS_VERSION: ${{ steps.start-jenkins.outputs.version  }}
         run: make test
 
       - name: Upload coverage to Codecov

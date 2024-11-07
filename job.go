@@ -40,39 +40,44 @@ func (j *JobItem) Credentials() *CredentialService {
 	return j.credentials
 }
 
-func (j *JobItem) Rename(name string) error {
+func (j *JobItem) Rename(name string) (*url.URL, error) {
 	v := url.Values{}
 	v.Add("newName", name)
 	resp, err := j.Request("POST", "confirmRename?"+v.Encode(), nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	url, _ := resp.Location()
-	j.URL = appendSlash(url.String())
+	newUrl, err := resp.Location()
+	if err != nil {
+		return nil, err
+	}
+	j.URL = appendSlash(newUrl.String())
 	j.setName()
-	return nil
+	return newUrl, nil
 }
 
-func (j *JobItem) Move(path string) error {
+func (j *JobItem) Move(path string) (*url.URL, error) {
 	v := url.Values{}
 	v.Add("destination", "/"+strings.Trim(path, "/"))
 	resp, err := j.Request("POST", "move/move?"+v.Encode(), nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	url, _ := resp.Location()
-	j.URL = appendSlash(url.String())
+	newUrl, err := resp.Location()
+	if err != nil {
+		return nil, err
+	}
+	j.URL = appendSlash(newUrl.String())
 	j.setName()
-	return nil
+	return newUrl, nil
 }
 
-func (j *JobItem) Copy(src, dest string) error {
+func (j *JobItem) Copy(src, dest string) (*http.Response, error) {
 	v := url.Values{}
 	v.Add("name", dest)
 	v.Add("mode", "copy")
 	v.Add("from", src)
-	_, err := j.Request("POST", "createItem?"+v.Encode(), nil)
-	return err
+	return j.Request("POST", "createItem?"+v.Encode(), nil)
 }
 
 func (j *JobItem) GetParent() (*JobItem, error) {
@@ -124,11 +129,10 @@ func (j *JobItem) GetDescription() (string, error) {
 	return data["description"], nil
 }
 
-func (j *JobItem) SetDescription(description string) error {
+func (j *JobItem) SetDescription(description string) (*http.Response, error) {
 	v := url.Values{}
 	v.Add("description", description)
-	_, err := j.Request("POST", "submitDescription?"+v.Encode(), nil)
-	return err
+	return j.Request("POST", "submitDescription?"+v.Encode(), nil)
 }
 
 func (j *JobItem) Build(param url.Values) (*OneQueueItem, error) {
@@ -263,9 +267,8 @@ func (j *JobItem) GetBuildByName(name string) (*BuildItem, error) {
 	return NewBuildItem(build.URL, build.Class, j.jenkins), nil
 }
 
-func (j *JobItem) Delete() error {
-	_, err := j.Request("POST", "doDelete", nil)
-	return err
+func (j *JobItem) Delete() (*http.Response, error) {
+	return j.Request("POST", "doDelete", nil)
 }
 
 func (j *JobItem) ListBuilds() ([]*BuildItem, error) {

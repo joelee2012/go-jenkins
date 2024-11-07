@@ -19,7 +19,7 @@ func TestName(t *testing.T) {
 }
 
 func TestRename(t *testing.T) {
-	err := pipeline.Rename("pipeline1")
+	_, err := pipeline.Rename("pipeline1")
 	assert.Nil(t, err)
 	newPipeline, err := folder.Get("pipeline1")
 	assert.Nil(t, err)
@@ -32,7 +32,7 @@ func TestRename(t *testing.T) {
 	assert.Nil(t, old)
 
 	// revert
-	err = pipeline.Rename("pipeline")
+	_, err = pipeline.Rename("pipeline")
 	assert.Nil(t, err)
 }
 
@@ -120,7 +120,8 @@ func TestSetDescription(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Empty(t, description)
 	msg := "testing job for go jenkins"
-	assert.Nil(t, pipeline.SetDescription(msg))
+	_, err = pipeline.SetDescription(msg)
+	assert.Nil(t, err)
 	description, err = pipeline.GetDescription()
 	assert.Nil(t, err)
 	assert.Equal(t, msg, description)
@@ -150,7 +151,8 @@ func TestGetBuildFunctions(t *testing.T) {
 }
 
 func TestMove(t *testing.T) {
-	assert.Nil(t, pipeline.Move("/folder/folder1"))
+	_, err := pipeline.Move("/folder/folder1")
+	assert.Nil(t, err)
 	job, err := jenkins.GetJob("folder/pipeline")
 	assert.Nil(t, err)
 	assert.Nil(t, job)
@@ -159,11 +161,13 @@ func TestMove(t *testing.T) {
 	assert.Contains(t, job.URL, "folder1/job/pipeline")
 
 	//revert change
-	assert.Nil(t, pipeline.Move("folder"))
+	_, err = pipeline.Move("folder")
+	assert.Nil(t, err)
 }
 
 func TestCopy(t *testing.T) {
-	assert.Nil(t, folder.Copy("pipeline", "new_pipeline"))
+	_, err := folder.Copy("pipeline", "new_pipeline")
+	assert.Nil(t, err)
 	job, err := jenkins.GetJob("folder/new_pipeline")
 	assert.Nil(t, err)
 	assert.Equal(t, job.Class, pipeline.Class)

@@ -68,15 +68,6 @@ func (v *ViewService) List() ([]*View, error) {
 	return jobJson.Views, nil
 }
 
-// func (v *ViewService) bindViewAPIJson(name string, view interface{}) error {
-// 	resp, err := v.Request("GET", "view/"+name+"/api/json")
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer resp.Body.Close()
-// 	return unmarshalResponse(resp.Body, view)
-// }
-
 // func (v *ViewService) GetJobFromView(name, jobName string) (*JobItem, error) {
 // 	view := &View{}
 // 	if err := v.bindViewAPIJson(name, view); err != nil {

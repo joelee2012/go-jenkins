@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path"
 	"regexp"
 	"strconv"
@@ -23,6 +24,26 @@ func NewItem(url, class string, jenkins *Jenkins) *Item {
 	return &Item{URL: url, Class: parseClass(class), jenkins: jenkins}
 }
 
+type ApiJsonOpts struct {
+	Tree  string
+	Depth int
+}
+
+func (o *ApiJsonOpts) Encode() string {
+	v := url.Values{}
+	if o.Tree != "" {
+		v.Add("tree", o.Tree)
+	}
+	v.Add("depth", strconv.Itoa(o.Depth))
+	return v.Encode()
+}
+
+// Bind jenkins JSON data to any type,
+//
+//	// bind json data to map
+//	data := make(map[string]string)
+//	jenkins.ApiJson(&data, &ApiJsonOpts{"tree":"description"})
+//	fmt.Println(data["description"])
 func (i *Item) ApiJson(v any, opts *ApiJsonOpts) error {
 	return unmarshalApiJson(i, v, opts)
 }

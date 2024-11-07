@@ -194,11 +194,14 @@ func TestGetJob(t *testing.T) {
 }
 
 func TestDeleteJob(t *testing.T) {
-	assert.NotNil(t, jenkins.DeleteJob(""))
-	_, err := jenkins.CreateJob("folder/pipeline3", strings.NewReader(jobConf))
+	_, err := jenkins.DeleteJob("")
+	assert.NotNil(t, err)
+	_, err = jenkins.CreateJob("folder/pipeline3", strings.NewReader(jobConf))
 	assert.Nil(t, err)
-	assert.Nil(t, jenkins.DeleteJob("folder/pipeline3"))
-	assert.NotNil(t, jenkins.DeleteJob("folder/pipeline3"))
+	_, err = jenkins.DeleteJob("folder/pipeline3")
+	assert.Nil(t, err)
+	_, err = jenkins.DeleteJob("folder/pipeline3")
+	assert.NotNil(t, err)
 }
 
 func TestListJobs(t *testing.T) {
