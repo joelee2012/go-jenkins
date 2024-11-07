@@ -48,6 +48,26 @@ func (i *Item) ApiJson(v any, opts *ApiJsonOpts) error {
 	return unmarshalApiJson(i, v, opts)
 }
 
+func unmarshalApiJson(r Requester, v any, opts *ApiJsonOpts) error {
+	entry := "api/json"
+	if opts != nil {
+		entry = "api/json?" + opts.Encode()
+	}
+	resp, err := r.Request("GET", entry, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, v); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (i *Item) Request(method, entry string, body io.Reader) (*http.Response, error) {
 	return i.jenkins.doRequest(method, i.URL+entry, body)
 }

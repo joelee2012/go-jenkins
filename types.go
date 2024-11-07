@@ -2,7 +2,7 @@ package jenkins
 
 import "fmt"
 
-type Job struct {
+type JobJson struct {
 	Class                 string         `json:"_class"`
 	Actions               []Actions      `json:"actions"`
 	Description           string         `json:"description"`
@@ -13,30 +13,30 @@ type Job struct {
 	Name                  string         `json:"name"`
 	URL                   string         `json:"url"`
 	Buildable             bool           `json:"buildable"`
-	Builds                []*Build       `json:"builds"`
+	Builds                []*BuildJson   `json:"builds"`
 	Color                 string         `json:"color"`
-	FirstBuild            *Build         `json:"firstBuild"`
+	FirstBuild            *BuildJson     `json:"firstBuild"`
 	HealthReport          []HealthReport `json:"healthReport"`
 	InQueue               bool           `json:"inQueue"`
 	KeepDependencies      bool           `json:"keepDependencies"`
-	LastBuild             *Build         `json:"lastBuild"`
-	LastCompletedBuild    *Build         `json:"lastCompletedBuild"`
-	LastFailedBuild       *Build         `json:"lastFailedBuild"`
-	LastStableBuild       *Build         `json:"lastStableBuild"`
-	LastSuccessfulBuild   *Build         `json:"lastSuccessfulBuild"`
-	LastUnstableBuild     *Build         `json:"lastUnstableBuild"`
-	LastUnsuccessfulBuild *Build         `json:"lastUnsuccessfulBuild"`
+	LastBuild             *BuildJson     `json:"lastBuild"`
+	LastCompletedBuild    *BuildJson     `json:"lastCompletedBuild"`
+	LastFailedBuild       *BuildJson     `json:"lastFailedBuild"`
+	LastStableBuild       *BuildJson     `json:"lastStableBuild"`
+	LastSuccessfulBuild   *BuildJson     `json:"lastSuccessfulBuild"`
+	LastUnstableBuild     *BuildJson     `json:"lastUnstableBuild"`
+	LastUnsuccessfulBuild *BuildJson     `json:"lastUnsuccessfulBuild"`
 	NextBuildNumber       int            `json:"nextBuildNumber"`
 	Property              []*Property    `json:"property"`
 	QueueItem             interface{}    `json:"queueItem"`
 	ConcurrentBuild       bool           `json:"concurrentBuild"`
 	ResumeBlocked         bool           `json:"resumeBlocked"`
-	Jobs                  []*Job         `json:"jobs"`
+	Jobs                  []*JobJson     `json:"jobs"`
 	PrimaryView           *PrimaryView   `json:"primaryView"`
-	Views                 []*View        `json:"views"`
+	Views                 []*ViewJson    `json:"views"`
 }
 
-type Build struct {
+type BuildJson struct {
 	Class             string       `json:"_class"`
 	Actions           []Actions    `json:"actions"`
 	Artifacts         []Artifacts  `json:"artifacts"`
@@ -56,8 +56,8 @@ type Build struct {
 	URL               string       `json:"url"`
 	ChangeSets        []ChangeSets `json:"changeSets"`
 	Culprits          []Culprits   `json:"culprits"`
-	NextBuild         *Build       `json:"nextBuild"`
-	PreviousBuild     *Build       `json:"previousBuild"`
+	NextBuild         *BuildJson   `json:"nextBuild"`
+	PreviousBuild     *BuildJson   `json:"previousBuild"`
 }
 type Parameters struct {
 	Class string `json:"_class"`
@@ -181,16 +181,16 @@ type PrimaryView struct {
 	Name  string `json:"name"`
 	URL   string `json:"url"`
 }
-type View struct {
-	Class       string   `json:"_class"`
-	Name        string   `json:"name"`
-	URL         string   `json:"url"`
-	Description string   `json:"description"`
-	Jobs        []*Job   `json:"jobs"`
-	Property    []string `json:"property"`
+type ViewJson struct {
+	Class       string     `json:"_class"`
+	Name        string     `json:"name"`
+	URL         string     `json:"url"`
+	Description string     `json:"description"`
+	Jobs        []*JobJson `json:"jobs"`
+	Property    []string   `json:"property"`
 }
 
-func (v View) String() string {
+func (v ViewJson) String() string {
 	return fmt.Sprintf("<%s: %s>", parseClass(v.Class), v.URL)
 }
 
@@ -227,7 +227,7 @@ type ComputerSet struct {
 	TotalExecutors int         `json:"totalExecutors"`
 }
 
-type Nodes struct {
+type NodesJson struct {
 	Class           string           `json:"_class"`
 	AssignedLabels  []AssignedLabels `json:"assignedLabels"`
 	Mode            string           `json:"mode"`
@@ -242,7 +242,7 @@ type Nodes struct {
 	URL             string           `json:"url"`
 	UseCrumbs       bool             `json:"useCrumbs"`
 	UseSecurity     bool             `json:"useSecurity"`
-	Views           []*View          `json:"views"`
+	Views           []*ViewJson      `json:"views"`
 }
 
 type AssignedLabels struct {
@@ -252,7 +252,7 @@ type AssignedLabels struct {
 	Description    interface{}   `json:"description"`
 	IdleExecutors  int           `json:"idleExecutors"`
 	Name           string        `json:"name"`
-	Nodes          []Nodes       `json:"nodes"`
+	Nodes          []NodesJson   `json:"nodes"`
 	Offline        bool          `json:"offline"`
 	TiedJobs       []interface{} `json:"tiedJobs"`
 	TotalExecutors int           `json:"totalExecutors"`
@@ -378,7 +378,7 @@ func (c Computer) String() string {
 	return fmt.Sprintf("<%s: %s>", parseClass(c.Class), c.DisplayName)
 }
 
-type Queue struct {
+type QueueJson struct {
 	Class             string        `json:"_class"`
 	DiscoverableItems []interface{} `json:"discoverableItems"`
 	Items             []*QueueItem  `json:"items"`
@@ -413,18 +413,18 @@ type Executable struct {
 	URL    string `json:"url"`
 }
 
-type Credentials struct {
-	Class           string        `json:"_class"`
-	Credentials     []*Credential `json:"credentials"`
-	Description     string        `json:"description"`
-	DisplayName     string        `json:"displayName"`
-	FullDisplayName string        `json:"fullDisplayName"`
-	FullName        string        `json:"fullName"`
-	Global          bool          `json:"global"`
-	URLName         string        `json:"urlName"`
+type CredentialsJson struct {
+	Class           string            `json:"_class"`
+	Credentials     []*CredentialJson `json:"credentials"`
+	Description     string            `json:"description"`
+	DisplayName     string            `json:"displayName"`
+	FullDisplayName string            `json:"fullDisplayName"`
+	FullName        string            `json:"fullName"`
+	Global          bool              `json:"global"`
+	URLName         string            `json:"urlName"`
 }
 
-type Credential struct {
+type CredentialJson struct {
 	Description string `json:"description"`
 	DisplayName string `json:"displayName"`
 	FullName    string `json:"fullName"`
@@ -432,6 +432,6 @@ type Credential struct {
 	TypeName    string `json:"typeName"`
 }
 
-func (c Credential) String() string {
+func (c CredentialJson) String() string {
 	return fmt.Sprintf("<%s: %s (%s)>", c.TypeName, c.FullName, c.Description)
 }

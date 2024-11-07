@@ -40,36 +40,36 @@ func (j *JobItem) Credentials() *CredentialService {
 	return j.credentials
 }
 
-func (j *JobItem) Rename(name string) (*url.URL, error) {
+func (j *JobItem) Rename(name string) (newUrl *url.URL, err error) {
 	v := url.Values{}
 	v.Add("newName", name)
 	resp, err := j.Request("POST", "confirmRename?"+v.Encode(), nil)
 	if err != nil {
 		return nil, err
 	}
-	newUrl, err := resp.Location()
-	if err != nil {
-		return nil, err
-	}
-	j.URL = appendSlash(newUrl.String())
-	j.setName()
-	return newUrl, nil
+
+	defer func() {
+		j.URL = appendSlash(newUrl.String())
+		j.setName()
+	}()
+
+	return resp.Location()
 }
 
-func (j *JobItem) Move(path string) (*url.URL, error) {
+func (j *JobItem) Move(path string) (newUrl *url.URL, err error) {
 	v := url.Values{}
 	v.Add("destination", "/"+strings.Trim(path, "/"))
 	resp, err := j.Request("POST", "move/move?"+v.Encode(), nil)
 	if err != nil {
-		return nil, err
+		return
 	}
-	newUrl, err := resp.Location()
-	if err != nil {
-		return nil, err
-	}
-	j.URL = appendSlash(newUrl.String())
-	j.setName()
-	return newUrl, nil
+
+	defer func() {
+		j.URL = appendSlash(newUrl.String())
+		j.setName()
+	}()
+
+	return resp.Location()
 }
 
 func (j *JobItem) Copy(src, dest string) (*http.Response, error) {
@@ -161,7 +161,7 @@ func (j *JobItem) GetBuild(number int) (*BuildItem, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}
-	jobJson := &Job{}
+	jobJson := &JobJson{}
 	if err := j.ApiJson(&jobJson, &ApiJsonOpts{Tree: "builds[number,url]"}); err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (j *JobItem) Get(name string) (*JobItem, error) {
 	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s have no jobs", j)
 	}
-	var folderJson Job
+	var folderJson JobJson
 	if err := j.ApiJson(&folderJson, &ApiJsonOpts{Tree: "jobs[url,name]"}); err != nil {
 		return nil, err
 	}
@@ -205,14 +205,14 @@ func (j *JobItem) List(depth int) ([]*JobItem, error) {
 	for i := 0; i < depth; i++ {
 		query = fmt.Sprintf(qf, query)
 	}
-	var folderJson Job
+	var folderJson JobJson
 
 	if err := j.ApiJson(&folderJson, &ApiJsonOpts{Tree: query}); err != nil {
 		return nil, err
 	}
 	var jobs []*JobItem
-	var _resolve func(item *Job)
-	_resolve = func(item *Job) {
+	var _resolve func(item *JobJson)
+	_resolve = func(item *JobJson) {
 		for _, job := range item.Jobs {
 			if len(job.Jobs) > 0 {
 				_resolve(job)
@@ -260,7 +260,7 @@ func (j *JobItem) GetBuildByName(name string) (*BuildItem, error) {
 	if string(jobJson[name]) == "null" {
 		return nil, nil
 	}
-	build := &Build{}
+	build := &BuildJson{}
 	if err := json.Unmarshal(jobJson[name], build); err != nil {
 		return nil, err
 	}
@@ -275,7 +275,7 @@ func (j *JobItem) ListBuilds() ([]*BuildItem, error) {
 	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
 		return nil, fmt.Errorf("%s have no builds", j)
 	}
-	var jobJson Job
+	var jobJson JobJson
 	var builds []*BuildItem
 	if err := j.ApiJson(&jobJson, &ApiJsonOpts{Tree: "builds[url]"}); err != nil {
 		return nil, err
@@ -292,7 +292,7 @@ func (j *JobItem) SetNextBuildNumber(number int) (*http.Response, error) {
 }
 
 func (j *JobItem) GetParameters() ([]*ParameterDefinition, error) {
-	jobJson := &Job{}
+	jobJson := &JobJson{}
 	if err := j.ApiJson(jobJson, nil); err != nil {
 		return nil, err
 	}

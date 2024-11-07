@@ -10,8 +10,8 @@ type ViewService struct {
 	*Item
 }
 
-func (v *ViewService) Get(name string) (*View, error) {
-	jobJson := &Job{}
+func (v *ViewService) Get(name string) (*ViewJson, error) {
+	jobJson := &JobJson{}
 	if err := v.ApiJson(jobJson, &ApiJsonOpts{Tree: "views[name,url,description]"}); err != nil {
 		return nil, err
 	}
@@ -60,8 +60,8 @@ func (v *ViewService) SetDescription(name, description string) (*http.Response, 
 	return v.Request("POST", "view/"+name+"/submitDescription?"+p.Encode(), nil)
 }
 
-func (v *ViewService) List() ([]*View, error) {
-	jobJson := &Job{}
+func (v *ViewService) List() ([]*ViewJson, error) {
+	jobJson := &JobJson{}
 	if err := v.ApiJson(jobJson, &ApiJsonOpts{Tree: "views[name,url,description]"}); err != nil {
 		return nil, err
 	}

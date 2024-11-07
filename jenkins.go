@@ -347,25 +347,7 @@ func (c *Jenkins) ReloadJCasC() (*http.Response, error) {
 // 	return resp.ToFile(name)
 // }
 
-func unmarshalApiJson(r Requester, v any, opts *ApiJsonOpts) error {
-	entry := "api/json"
-	if opts != nil {
-		entry = "api/json?" + opts.Encode()
-	}
-	resp, err := r.Request("GET", entry, nil)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(data, v); err != nil {
-		return err
-	}
-	return nil
-}
+
 
 func (c *Jenkins) ValidateJenkinsfile(content string) (string, error) {
 	v := url.Values{}

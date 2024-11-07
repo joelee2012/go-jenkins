@@ -9,8 +9,8 @@ type CredentialService struct {
 	*Item
 }
 
-func (cs *CredentialService) Get(name string) (*Credential, error) {
-	var credsJson Credentials
+func (cs *CredentialService) Get(name string) (*CredentialJson, error) {
+	var credsJson CredentialsJson
 	if err := cs.ApiJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err
 	}
@@ -40,8 +40,8 @@ func (cs *CredentialService) SetConfigure(name string, xml io.Reader) (*http.Res
 	return cs.Request("POST", "credential/"+name+"/config.xml", xml)
 }
 
-func (cs *CredentialService) List() ([]*Credential, error) {
-	var credsJson Credentials
+func (cs *CredentialService) List() ([]*CredentialJson, error) {
+	var credsJson CredentialsJson
 	if err := cs.ApiJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err
 	}

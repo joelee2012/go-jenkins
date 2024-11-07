@@ -74,7 +74,7 @@ type QueueService struct {
 }
 
 func (q *QueueService) List() ([]*OneQueueItem, error) {
-	queue := &Queue{}
+	queue := &QueueJson{}
 	if err := q.ApiJson(queue, nil); err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (q *QueueService) List() ([]*OneQueueItem, error) {
 }
 
 func (q *QueueService) Get(id int) (*OneQueueItem, error) {
-	var queue Queue
+	var queue QueueJson
 	if err := q.ApiJson(&queue, nil); err != nil {
 		return nil, err
 	}

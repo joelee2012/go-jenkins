@@ -10,11 +10,11 @@ import (
 
 type BuildItem struct {
 	*Item
-	ID int
+	Number int
 }
 
 func NewBuildItem(url, class string, jenkins *Jenkins) *BuildItem {
-	return &BuildItem{Item: NewItem(url, class, jenkins), ID: parseId(url)}
+	return &BuildItem{Item: NewItem(url, class, jenkins), Number: parseId(url)}
 }
 
 func (b *BuildItem) LoopLog(f func(line string) error) error {
