@@ -11,9 +11,9 @@ type OneQueueItem struct {
 	build *BuildItem
 }
 
-func NewQueueItem(url string, client *Jenkins) *OneQueueItem {
+func NewQueueItem(url string, jenkins *Jenkins) *OneQueueItem {
 	return &OneQueueItem{
-		Item:  NewItem(url, "QueueItem", client),
+		Item:  NewItem(url, "QueueItem", jenkins),
 		ID:    parseId(url),
 		build: nil,
 	}

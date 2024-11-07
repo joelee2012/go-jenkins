@@ -20,7 +20,7 @@ type JenkinsOpts struct {
 }
 
 type Jenkins struct {
-	URL         string
+	*Item
 	User        string
 	Password    string
 	client      *http.Client
@@ -50,7 +50,7 @@ type Crumb struct {
 //	)
 //
 //	func main() {
-//		client, err := jenkins.New("http://localhost:8080/", "admin", "1234")
+//		jenkins, err := jenkins.New("http://localhost:8080/", "admin", "1234")
 //		if err != nil {
 //			log.Fatalln(err)
 //		}
@@ -73,10 +73,10 @@ type Crumb struct {
 //		  <disabled>false</disabled>
 //		</flow-definition>`
 //	  	// create jenkins job
-//		if err := client.CreateJob("pipeline", xml); err != nil {
+//		if err := jenkins.CreateJob("pipeline", xml); err != nil {
 //			log.Fatalln(err)
 //		}
-//		qitem, err := client.BuildJob("pipeline", nil)
+//		qitem, err := jenkins.BuildJob("pipeline", nil)
 //		if err != nil {
 //			log.Fatalln(err)
 //		}
@@ -100,7 +100,8 @@ type Crumb struct {
 //	}
 func New(url, user, password string) (*Jenkins, error) {
 	url = appendSlash(url)
-	c := &Jenkins{URL: url, Header: make(http.Header)}
+	c := &Jenkins{Header: make(http.Header)}
+	c.Item = NewItem(url, "Jenkins", c)
 	auth := user + ":" + password
 	c.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(auth)))
 	c.Header.Set("Accept", "application/json")
@@ -203,10 +204,10 @@ func (c *Jenkins) GetCrumb() (*Crumb, error) {
 // Send request to jenkins,
 //
 //	// send request to get JSON data of jenkins
-//	client.Request("GET", "api/json")
-func (c *Jenkins) Request(method, entry string, body io.Reader) (*http.Response, error) {
-	return c.doRequest(method, c.URL+entry, body)
-}
+//	jenkins.Request("GET", "api/json")
+// func (c *Jenkins) Request(method, entry string, body io.Reader) (*http.Response, error) {
+// 	return c.doRequest(method, c.URL+entry, body)
+// }
 
 func (c *Jenkins) doRequest(method, url string, body io.Reader) (*http.Response, error) {
 	if _, err := c.GetCrumb(); err != nil {
@@ -243,7 +244,7 @@ func printRequest(req *http.Request) {
 
 // Get job with fullname:
 //
-//	job, err := client.GetJob("path/to/job")
+//	job, err := jenkins.GetJob("path/to/job")
 //	if err != nil {
 //		return err
 //	}
@@ -275,7 +276,7 @@ func (c *Jenkins) GetJob(fullName string) (*JobItem, error) {
 //	  <disabled>false</disabled>
 //	</flow-definition>`
 //	// create jenkins job
-//	if err := client.CreateJob("path/to/name", xml); err != nil {
+//	if err := jenkins.CreateJob("path/to/name", xml); err != nil {
 //		log.Fatalln(err)
 //	}
 func (c *Jenkins) CreateJob(fullName string, xml io.Reader) (*http.Response, error) {
@@ -287,9 +288,9 @@ func (c *Jenkins) DeleteJob(fullName string) error {
 	return NewJobItem(c.Name2URL(fullName), "Job", c).Delete()
 }
 
-func (c *Jenkins) String() string {
-	return fmt.Sprintf("<Jenkins: %s>", c.URL)
-}
+// func (c *Jenkins) String() string {
+// 	return fmt.Sprintf("<Jenkins: %s>", c.URL)
+// }
 
 func (c *Jenkins) resolveJob(fullName string) (*JobItem, string) {
 	dir, name := path.Split(strings.Trim(fullName, "/"))
@@ -331,10 +332,10 @@ func (c *Jenkins) GetVersion() (string, error) {
 // Trigger job to build:
 //
 //	// without parameters
-//	client.BuildJob("your job", nil)
-//	client.BuildJob("your job", jenkins.ReqParams{})
+//	jenkins.BuildJob("your job", nil)
+//	jenkins.BuildJob("your job", jenkins.ReqParams{})
 //	// with parameters
-//	client.BuildJob("your job", jenkins.ReqParams{"ARG1": "ARG1_VALUE"})
+//	jenkins.BuildJob("your job", jenkins.ReqParams{"ARG1": "ARG1_VALUE"})
 func (c *Jenkins) BuildJob(fullName string, params url.Values) (*OneQueueItem, error) {
 	return NewJobItem(c.Name2URL(fullName), "Job", c).Build(params)
 }
@@ -399,11 +400,11 @@ func (o *ApiJsonOpts) Encode() string {
 //
 //	// bind json data to map
 //	data := make(map[string]string)
-//	client.ApiJson(jenkins.ReqParams{"tree":"description"}, &data)
+//	jenkins.ApiJson(jenkins.ReqParams{"tree":"description"}, &data)
 //	fmt.Println(data["description"])
-func (c *Jenkins) ApiJson(v any, opts *ApiJsonOpts) error {
-	return unmarshalApiJson(c, v, opts)
-}
+// func (c *Jenkins) ApiJson(v any, opts *ApiJsonOpts) error {
+// 	return unmarshalApiJson(c, v, opts)
+// }
 
 func unmarshalApiJson(r Requester, v any, opts *ApiJsonOpts) error {
 	entry := "api/json"

@@ -20,8 +20,8 @@ type JobItem struct {
 	FullDisplayName string
 }
 
-func NewJobItem(url, class string, client *Jenkins) *JobItem {
-	j := &JobItem{Item: NewItem(url, class, client)}
+func NewJobItem(url, class string, jenkins *Jenkins) *JobItem {
+	j := &JobItem{Item: NewItem(url, class, jenkins)}
 	j.setName()
 	return j
 }

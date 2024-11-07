@@ -8,7 +8,7 @@ import (
 )
 
 func TestViewServiceGet(t *testing.T) {
-	v, err := client.Views().Get("all")
+	v, err := jenkins.Views().Get("all")
 	assert.Nil(t, err)
 	assert.NotNil(t, v)
 	assert.Equal(t, v.Name, "all")

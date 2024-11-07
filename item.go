@@ -18,9 +18,9 @@ type Item struct {
 	jenkins *Jenkins
 }
 
-func NewItem(url, class string, client *Jenkins) *Item {
+func NewItem(url, class string, jenkins *Jenkins) *Item {
 	url = appendSlash(url)
-	return &Item{URL: url, Class: parseClass(class), jenkins: client}
+	return &Item{URL: url, Class: parseClass(class), jenkins: jenkins}
 }
 
 func (i *Item) ApiJson(v any, opts *ApiJsonOpts) error {

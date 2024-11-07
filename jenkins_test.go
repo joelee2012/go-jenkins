@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	client    *Jenkins
+	jenkins   *Jenkins
 	folder    *JobItem
 	pipeline  *JobItem
 	pipeline2 *JobItem
@@ -88,7 +88,7 @@ var (
 func setup() error {
 	log.Println("execute setup function")
 	var err error
-	client, err = New(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
+	jenkins, err = New(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
 	if err != nil {
 		return err
 	}
@@ -99,22 +99,22 @@ func setup() error {
 
 	for index, name := range names {
 		log.Printf("create %s", name)
-		if _, err = client.CreateJob(name, strings.NewReader(confs[index])); err != nil {
+		if _, err = jenkins.CreateJob(name, strings.NewReader(confs[index])); err != nil {
 			return err
 		}
 	}
 
-	folder, err = client.GetJob("folder")
+	folder, err = jenkins.GetJob("folder")
 	if err != nil {
 		return err
 	}
 
-	pipeline, err = client.GetJob("folder/pipeline")
+	pipeline, err = jenkins.GetJob("folder/pipeline")
 	if err != nil {
 		return err
 	}
 
-	pipeline2, err = client.GetJob("folder/pipeline2")
+	pipeline2, err = jenkins.GetJob("folder/pipeline2")
 	if err != nil {
 		return err
 	}
@@ -122,22 +122,22 @@ func setup() error {
 }
 
 func tearsdown() {
-	client.DeleteJob("folder")
+	jenkins.DeleteJob("folder")
 }
 
 func TestNewJenkins(t *testing.T) {
-	assert.Equal(t, fmt.Sprint(client), fmt.Sprintf("<Jenkins: %s>", client.URL))
+	assert.Equal(t, fmt.Sprint(jenkins), fmt.Sprintf("<Jenkins: %s>", jenkins.URL))
 	expect := "Jenkins-Crumb"
-	crumb, err := client.GetCrumb()
+	crumb, err := jenkins.GetCrumb()
 	assert.Nil(t, err)
 	assert.Equal(t, crumb.RequestFields, expect)
-	crumb1, err := client.GetCrumb()
+	crumb1, err := jenkins.GetCrumb()
 	assert.Nil(t, err)
 	assert.Equal(t, crumb, crumb1)
 }
 
 func TestGetVersion(t *testing.T) {
-	version, err := client.GetVersion()
+	version, err := jenkins.GetVersion()
 	assert.Nil(t, err)
 	assert.Equal(t, os.Getenv("JENKINS_VERSION"), version)
 }
@@ -157,7 +157,7 @@ func TestName2Url(t *testing.T) {
 		{"job/job", "job/job/job/job/"},
 	}
 	for _, test := range tests {
-		assert.Equal(t, client.URL+test.expect, client.Name2URL(test.given))
+		assert.Equal(t, jenkins.URL+test.expect, jenkins.Name2URL(test.given))
 	}
 }
 
@@ -170,42 +170,42 @@ func TestUrl2Name(t *testing.T) {
 		{"job/job", "job/job/job/job"},
 	}
 	for _, test := range tests {
-		name, _ := client.URL2Name(client.URL + test.given)
+		name, _ := jenkins.URL2Name(jenkins.URL + test.given)
 		assert.Equal(t, test.expect, name)
 	}
-	_, err := client.URL2Name("http://0.0.0.1/job/folder1/")
+	_, err := jenkins.URL2Name("http://0.0.0.1/job/folder1/")
 	assert.NotNil(t, err)
 }
 
 func TestGetJob(t *testing.T) {
 	// check job exist
-	job, err := client.GetJob(pipeline.FullName)
+	job, err := jenkins.GetJob(pipeline.FullName)
 	assert.Nil(t, err)
 	assert.Equal(t, job.Class, "WorkflowJob")
 
 	// check job does not exist
-	job, err = client.GetJob("folder/notexist")
+	job, err = jenkins.GetJob("folder/notexist")
 	assert.Nil(t, err)
 	assert.Nil(t, job)
 	// wrong path
-	job, err = client.GetJob(pipeline.FullName + "/notexist")
+	job, err = jenkins.GetJob(pipeline.FullName + "/notexist")
 	assert.Nil(t, err)
 	assert.Nil(t, job)
 }
 
 func TestDeleteJob(t *testing.T) {
-	assert.NotNil(t, client.DeleteJob(""))
-	_, err := client.CreateJob("folder/pipeline3", strings.NewReader(jobConf))
+	assert.NotNil(t, jenkins.DeleteJob(""))
+	_, err := jenkins.CreateJob("folder/pipeline3", strings.NewReader(jobConf))
 	assert.Nil(t, err)
-	assert.Nil(t, client.DeleteJob("folder/pipeline3"))
-	assert.NotNil(t, client.DeleteJob("folder/pipeline3"))
+	assert.Nil(t, jenkins.DeleteJob("folder/pipeline3"))
+	assert.NotNil(t, jenkins.DeleteJob("folder/pipeline3"))
 }
 
 func TestListJobs(t *testing.T) {
-	jobs, err := client.ListJobs(0)
+	jobs, err := jenkins.ListJobs(0)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 1)
-	jobs, err = client.ListJobs(1)
+	jobs, err = jenkins.ListJobs(1)
 	assert.Nil(t, err)
 	assert.Len(t, jobs, 4)
 }
@@ -250,7 +250,7 @@ func TestBuildJob(t *testing.T) {
 func TestBuildJobWithParameters(t *testing.T) {
 	v := url.Values{}
 	v.Add("ARG1", "ARG1_VALUE")
-	qitem, err := client.BuildJob(pipeline2.FullName, v)
+	qitem, err := jenkins.BuildJob(pipeline2.FullName, v)
 	var build *BuildItem
 	assert.Nil(t, err)
 	for {
@@ -272,7 +272,7 @@ func TestBuildJobWithParameters(t *testing.T) {
 }
 
 func TestSystemCredentials(t *testing.T) {
-	cm := client.Credentials()
+	cm := jenkins.Credentials()
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
@@ -296,17 +296,17 @@ func TestSystemCredentials(t *testing.T) {
 }
 
 func TestRunScript(t *testing.T) {
-	output, err := client.RunScript(`println("hi, go-jenkins")`)
+	output, err := jenkins.RunScript(`println("hi, go-jenkins")`)
 	assert.Nil(t, err)
 	assert.Equal(t, "hi, go-jenkins\n", output)
 }
 
 func TestValidateJenkinsfile(t *testing.T) {
-	output, err := client.ValidateJenkinsfile("")
+	output, err := jenkins.ValidateJenkinsfile("")
 	assert.Nil(t, err)
 	assert.Contains(t, output, "did not contain the 'pipeline' step")
 
-	output, err = client.ValidateJenkinsfile("pipeline { }")
+	output, err = jenkins.ValidateJenkinsfile("pipeline { }")
 	assert.Nil(t, err)
 	assert.Contains(t, output, "Missing required section")
 }
@@ -316,17 +316,17 @@ func TestQuiteDown(t *testing.T) {
 		Class        string `json:"_class"`
 		QuietingDown bool   `json:"quietingDown"`
 	}
-	assert.Nil(t, client.ApiJson(&status, nil))
+	assert.Nil(t, jenkins.ApiJson(&status, nil))
 	assert.False(t, status.QuietingDown)
 	// set quite down
-	_, err := client.QuiteDown()
+	_, err := jenkins.QuiteDown()
 	assert.Nil(t, err)
-	assert.Nil(t, client.ApiJson(&status, nil))
+	assert.Nil(t, jenkins.ApiJson(&status, nil))
 	assert.True(t, status.QuietingDown)
 	// cancel quite down
-	_, err = client.CancelQuiteDown()
+	_, err = jenkins.CancelQuiteDown()
 	assert.Nil(t, err)
-	assert.Nil(t, client.ApiJson(&status, nil))
+	assert.Nil(t, jenkins.ApiJson(&status, nil))
 	assert.False(t, status.QuietingDown)
 }
 

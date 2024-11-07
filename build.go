@@ -13,8 +13,8 @@ type BuildItem struct {
 	ID int
 }
 
-func NewBuildItem(url, class string, client *Jenkins) *BuildItem {
-	return &BuildItem{Item: NewItem(url, class, client), ID: parseId(url)}
+func NewBuildItem(url, class string, jenkins *Jenkins) *BuildItem {
+	return &BuildItem{Item: NewItem(url, class, jenkins), ID: parseId(url)}
 }
 
 func (b *BuildItem) LoopLog(f func(line string) error) error {
