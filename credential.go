@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -21,7 +22,7 @@ func (cs *Credentials) Get(name string) (*CredentialJson, error) {
 			}
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no such credential [%s]", name)
 }
 
 func (cs *Credentials) Create(xml io.Reader) (*http.Response, error) {

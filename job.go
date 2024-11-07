@@ -84,7 +84,7 @@ func (j *Job) GetParent() (*Job, error) {
 	fullName, _ := j.jenkins.URL2Name(j.URL)
 	dir, _ := path.Split(strings.Trim(fullName, "/"))
 	if dir == "" {
-		return nil, nil
+		return nil, fmt.Errorf("%s have no parent", j)
 	}
 	return j.jenkins.GetJob(dir)
 }
@@ -171,7 +171,7 @@ func (j *Job) GetBuild(number int) (*Build, error) {
 			return NewBuild(build.URL, build.Class, j.jenkins), nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("%s have no builds #%d", j, number)
 }
 
 func (j *Job) Get(name string) (*Job, error) {
@@ -258,7 +258,7 @@ func (j *Job) GetBuildByName(name string) (*Build, error) {
 		return nil, err
 	}
 	if string(jobJson[name]) == "null" {
-		return nil, nil
+		return nil, fmt.Errorf("get build failed due to [%s is null]", name)
 	}
 	build := &BuildJson{}
 	if err := json.Unmarshal(jobJson[name], build); err != nil {
@@ -301,7 +301,7 @@ func (j *Job) GetParameters() ([]*ParameterDefinition, error) {
 			return p.ParameterDefinitions, nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no parameters found")
 }
 
 func (j *Job) SCMPolling() (*http.Response, error) {

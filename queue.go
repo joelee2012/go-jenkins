@@ -65,8 +65,7 @@ func (q *OneQueueItem) getWaitingBuild() (*Build, error) {
 			return build, nil
 		}
 	}
-	// build is not avaliable and no error
-	return nil, nil
+	return nil, fmt.Errorf("%s have no build", q.URL)
 }
 
 type Queue struct {
@@ -95,7 +94,7 @@ func (q *Queue) Get(id int) (*OneQueueItem, error) {
 			return NewQueueItem(item.URL, q.jenkins), nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no such queue item #%d", id)
 }
 
 func (q *Queue) Cancel(id int) (*http.Response, error) {

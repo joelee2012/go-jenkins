@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,7 +21,7 @@ func (v *Views) Get(name string) (*ViewJson, error) {
 			return view, nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("%s has no view [%s]", v, name)
 }
 
 func (v *Views) Create(name string, xml io.Reader) (*http.Response, error) {
@@ -78,7 +79,7 @@ func (v *Views) List() ([]*ViewJson, error) {
 // 			return NewJobItem(job.URL, job.Class, v.jenkins), nil
 // 		}
 // 	}
-// 	return nil, nil
+// 	return nil, fmt.Errorf("%s has no job %s", v.URL, name)
 // }
 
 // func (v *ViewService) ListJobInView(name string) ([]*JobItem, error) {

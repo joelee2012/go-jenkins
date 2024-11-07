@@ -188,13 +188,15 @@ func (c *Jenkins) doRequest(method, url string, body io.Reader) (*http.Response,
 	}
 	req.Header = c.Header
 	if c.Debug {
-		defer printRequest(req)
+		printRequest(req)
 	}
 	resp, err := c.Client().Do(req)
+	if c.Debug {
+		defer printResponse(resp)
+	}
 	if err != nil {
 		return nil, err
 	}
-
 	if resp.StatusCode >= 400 {
 		data, err := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("%s: %s, %s, %s", resp.Status, url, data, err)
@@ -203,11 +205,18 @@ func (c *Jenkins) doRequest(method, url string, body io.Reader) (*http.Response,
 }
 
 func printRequest(req *http.Request) {
-	fmt.Printf("%s: %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
-	fmt.Printf("Host: %s\n", req.Host)
-	fmt.Printf("Content-Length: %d\n", req.ContentLength)
+	fmt.Printf("> %s %s %s\n", req.Method, req.URL.RequestURI(), req.Proto)
+	fmt.Printf("> Host: %s\n", req.Host)
+	fmt.Printf("> Content-Length: %d\n", req.ContentLength)
 	for k, v := range req.Header {
-		fmt.Printf("%s: %s\n", k, strings.Join(v, ","))
+		fmt.Printf("> %s: %s\n", k, v[0])
+	}
+}
+
+func printResponse(resp *http.Response) {
+	fmt.Printf("< %s %s\n", resp.Proto, resp.Status)
+	for k, v := range resp.Header {
+		fmt.Printf("< %s: %s\n", k, v[0])
 	}
 }
 

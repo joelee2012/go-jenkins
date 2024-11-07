@@ -2,7 +2,7 @@ package jenkins
 
 import (
 	"bufio"
-	"io"
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -15,25 +15,6 @@ type Build struct {
 
 func NewBuild(url, class string, jenkins *Jenkins) *Build {
 	return &Build{Item: NewItem(url, class, jenkins), Number: parseId(url)}
-}
-
-func (b *Build) LoopLog(f func(line string) error) error {
-	resp, err := b.Request("GET", "consoleText", nil)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		if err := f(scanner.Text()); err != nil {
-			return err
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (b *Build) IsBuilding() (bool, error) {
@@ -74,7 +55,26 @@ func (b *Build) GetJob() (*Job, error) {
 	return b.jenkins.GetJob(jobName)
 }
 
-func (b *Build) LoopProgressiveLog(kind string, f func(data []byte) error) error {
+func (b *Build) LoopLog(f func(line string) error) error {
+	resp, err := b.Request("GET", "consoleText", nil)
+	if err != nil {
+		return err
+	}
+	return scanResponse(resp, f)
+}
+
+func scanResponse(resp *http.Response, f func(line string) error) error {
+	defer resp.Body.Close()
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		if err := f(scanner.Text()); err != nil {
+			return err
+		}
+	}
+	return scanner.Err()
+}
+
+func (b *Build) LoopProgressiveLog(kind string, f func(line string) error) error {
 	var entry string
 	switch kind {
 	case "html":
@@ -86,20 +86,14 @@ func (b *Build) LoopProgressiveLog(kind string, f func(data []byte) error) error
 	}
 	start := "0"
 	for {
-		resp, err := b.Request("GET", entry+"?start="+start, nil)
+		resp, err := b.Request("GET", fmt.Sprintf("%s?start=%s", entry, start), nil)
 		if err != nil {
 			return err
 		}
-
 		if start == resp.Header.Get("X-Text-Size") {
 			continue
 		}
-		data, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		resp.Body.Close()
-		if err := f(data); err != nil {
+		if err := scanResponse(resp, f); err != nil {
 			return err
 		}
 		if resp.Header.Get("X-More-Data") != "true" {

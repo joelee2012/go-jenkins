@@ -1,6 +1,7 @@
 package jenkins
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -52,7 +53,7 @@ func (ns *Nodes) Get(name string) (*Computer, error) {
 			return c, nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no such node [%s]", name)
 }
 
 func (ns *Nodes) List() ([]*Computer, error) {
