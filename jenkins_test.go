@@ -185,11 +185,11 @@ func TestGetJob(t *testing.T) {
 
 	// check job does not exist
 	job, err = jenkins.GetJob("folder/notexist")
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Nil(t, job)
 	// wrong path
 	job, err = jenkins.GetJob(pipeline.FullName + "/notexist")
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Nil(t, job)
 }
 

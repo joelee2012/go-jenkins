@@ -187,7 +187,7 @@ func (j *Job) Get(name string) (*Job, error) {
 			return NewJob(job.URL, job.Class, j.jenkins), nil
 		}
 	}
-	return nil, fmt.Errorf("No such job [%s]", name)
+	return nil, fmt.Errorf("no such job [%s%s]", j.URL, name)
 }
 
 func (j *Job) Create(name string, xml io.Reader) (*http.Response, error) {

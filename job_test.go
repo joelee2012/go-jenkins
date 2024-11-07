@@ -28,7 +28,7 @@ func TestRename(t *testing.T) {
 
 	// old job 'pipeline' should not exist
 	old, err := folder.Get("pipeline")
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Nil(t, old)
 
 	// revert
@@ -154,7 +154,7 @@ func TestMove(t *testing.T) {
 	_, err := pipeline.Move("/folder/folder1")
 	assert.Nil(t, err)
 	job, err := jenkins.GetJob("folder/pipeline")
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Nil(t, job)
 	job, err = jenkins.GetJob("folder/folder1/pipeline")
 	assert.Nil(t, err)
