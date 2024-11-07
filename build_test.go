@@ -27,7 +27,7 @@ func setupBuild(t *testing.T) *Build {
 		}
 	}
 	var output []string
-	err = build.LoopProgressiveLog("text", func(line []byte) error {
+	err = build.LoopProgressiveLog("text", func(line string) error {
 		output = append(output, string(line))
 		time.Sleep(1 * time.Second)
 		return nil
