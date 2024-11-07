@@ -21,12 +21,12 @@ type JenkinsOpts struct {
 type Jenkins struct {
 	*Item
 	client      *http.Client
-	Header      http.Header
-	Crumb       *Crumb
+	crumb       *Crumb
 	credentials *CredentialService
 	nodes       *NodeService
 	queue       *QueueService
 	views       *ViewService
+	Header      http.Header
 	Debug       bool
 }
 
@@ -150,8 +150,8 @@ func (j *Jenkins) Queue() *QueueService {
 }
 
 func (c *Jenkins) GetCrumb() (*Crumb, error) {
-	if c.Crumb != nil {
-		return c.Crumb, nil
+	if c.crumb != nil {
+		return c.crumb, nil
 	}
 	req, err := http.NewRequest("GET", c.URL+"crumbIssuer/api/json", nil)
 	if err != nil {
@@ -170,12 +170,12 @@ func (c *Jenkins) GetCrumb() (*Crumb, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := json.Unmarshal(body, &c.Crumb); err != nil {
+	if err := json.Unmarshal(body, &c.crumb); err != nil {
 		return nil, err
 	}
-	c.Header.Set(c.Crumb.RequestFields, c.Crumb.Value)
+	c.Header.Set(c.crumb.RequestFields, c.crumb.Value)
 	c.Header.Set("Cookie", resp.Header.Get("set-cookie"))
-	return c.Crumb, nil
+	return c.crumb, nil
 }
 
 func (c *Jenkins) doRequest(method, url string, body io.Reader) (*http.Response, error) {
@@ -346,8 +346,6 @@ func (c *Jenkins) ReloadJCasC() (*http.Response, error) {
 // 	}
 // 	return resp.ToFile(name)
 // }
-
-
 
 func (c *Jenkins) ValidateJenkinsfile(content string) (string, error) {
 	v := url.Values{}
