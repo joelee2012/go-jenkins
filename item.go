@@ -1,50 +1,79 @@
 package jenkins
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
+	"net/url"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/imroc/req"
 )
 
 type Item struct {
-	URL    string
-	Class  string
-	client *Client
+	URL     string
+	Class   string
+	jenkins *Jenkins
 }
 
-type ReqParams = req.Param
-
-func NewItem(url, class string, client *Client) *Item {
+func NewItem(url, class string, jenkins *Jenkins) *Item {
 	url = appendSlash(url)
-	return &Item{URL: url, Class: parseClass(class), client: client}
+	return &Item{URL: url, Class: parseClass(class), jenkins: jenkins}
 }
 
-func (i *Item) BindAPIJson(params ReqParams, v interface{}) error {
-	resp, err := i.Request("GET", "api/json", params)
+type ApiJsonOpts struct {
+	Tree  string
+	Depth int
+}
+
+func (o *ApiJsonOpts) Encode() string {
+	v := url.Values{}
+	if o.Tree != "" {
+		v.Add("tree", o.Tree)
+	}
+	v.Add("depth", strconv.Itoa(o.Depth))
+	return v.Encode()
+}
+
+// Bind jenkins JSON data to any type,
+//
+//	// bind json data to map
+//	data := make(map[string]string)
+//	jenkins.ApiJson(&data, &ApiJsonOpts{"tree":"description"})
+//	fmt.Println(data["description"])
+func (i *Item) ApiJson(v any, opts *ApiJsonOpts) error {
+	return unmarshalApiJson(i, v, opts)
+}
+
+func unmarshalApiJson(r Requester, v any, opts *ApiJsonOpts) error {
+	entry := "api/json"
+	if opts != nil {
+		entry = "api/json?" + opts.Encode()
+	}
+	resp, err := r.Request("GET", entry, nil)
 	if err != nil {
 		return err
 	}
-	return resp.ToJSON(v)
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, v); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (i *Item) Request(method, entry string, vs ...interface{}) (*req.Resp, error) {
-	return i.client.Do(method, i.URL+entry, vs...)
+func (i *Item) Request(method, entry string, body io.Reader) (*http.Response, error) {
+	return i.jenkins.doRequest(method, i.URL+entry, body)
 }
 
 func (i *Item) String() string {
 	return fmt.Sprintf("<%s: %s>", i.Class, i.URL)
-}
-
-func (i *Item) WithContext(ctx context.Context) *Item {
-	i.client.WithContext(ctx)
-	return i
 }
 
 var delimeter = regexp.MustCompile(`\w+$`)
@@ -66,7 +95,7 @@ func parseId(url string) int {
 	return id
 }
 
-func prettyPrintJson(v interface{}) {
+func prettyPrintJson(v any) {
 	json, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		log.Fatal(err)

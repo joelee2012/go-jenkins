@@ -2,6 +2,7 @@ package jenkins
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestName(t *testing.T) {
 }
 
 func TestRename(t *testing.T) {
-	err := pipeline.Rename("pipeline1")
+	_, err := pipeline.Rename("pipeline1")
 	assert.Nil(t, err)
 	newPipeline, err := folder.Get("pipeline1")
 	assert.Nil(t, err)
@@ -27,11 +28,11 @@ func TestRename(t *testing.T) {
 
 	// old job 'pipeline' should not exist
 	old, err := folder.Get("pipeline")
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Nil(t, old)
 
 	// revert
-	err = pipeline.Rename("pipeline")
+	_, err = pipeline.Rename("pipeline")
 	assert.Nil(t, err)
 }
 
@@ -41,13 +42,15 @@ func TestIsBuildable(t *testing.T) {
 	assert.True(t, buildable)
 
 	// disable and check
-	assert.Nil(t, pipeline.Disable())
+	_, err = pipeline.Disable()
+	assert.Nil(t, err)
 	buildable, err = pipeline.IsBuildable()
 	assert.Nil(t, err)
 	assert.False(t, buildable)
 
 	// enable and check
-	assert.Nil(t, pipeline.Enable())
+	_, err = pipeline.Enable()
+	assert.Nil(t, err)
 	buildable, err = pipeline.IsBuildable()
 	assert.Nil(t, err)
 	assert.True(t, buildable)
@@ -72,7 +75,7 @@ func TestList(t *testing.T) {
 
 func TestGetParent(t *testing.T) {
 	fParent, err := folder.GetParent()
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Nil(t, fParent)
 
 	pParent, err := pipeline.GetParent()
@@ -96,15 +99,17 @@ func TestListBuilds(t *testing.T) {
 }
 
 func TestFolderCredentials(t *testing.T) {
-	cm := folder.Credentials
+	cm := folder.Credentials()
 	creds, err := cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
-	assert.Nil(t, cm.Create(credConf))
+	_, err = cm.Create(strings.NewReader(credConf))
+	assert.Nil(t, err)
 	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 1)
-	assert.Nil(t, cm.Delete("user-id"))
+	_, err = cm.Delete("user-id")
+	assert.Nil(t, err)
 	creds, err = cm.List()
 	assert.Nil(t, err)
 	assert.Len(t, creds, 0)
@@ -115,7 +120,8 @@ func TestSetDescription(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Empty(t, description)
 	msg := "testing job for go jenkins"
-	assert.Nil(t, pipeline.SetDescription(msg))
+	_, err = pipeline.SetDescription(msg)
+	assert.Nil(t, err)
 	description, err = pipeline.GetDescription()
 	assert.Nil(t, err)
 	assert.Equal(t, msg, description)
@@ -124,19 +130,19 @@ func TestSetDescription(t *testing.T) {
 func TestGetBuildFunctions(t *testing.T) {
 	expect_build := setupBuild(t)
 	// test job.GetBuild
-	build, err := pipeline.GetBuild(expect_build.ID)
+	build, err := pipeline.GetBuild(expect_build.Number)
 	assert.Nil(t, err)
-	assert.Equal(t, expect_build.ID, build.ID)
+	assert.Equal(t, expect_build.Number, build.Number)
 
 	// test job.GetLastBuild
 	build, err = pipeline.GetLastBuild()
 	assert.Nil(t, err)
-	assert.Equal(t, expect_build.ID, build.ID)
+	assert.Equal(t, expect_build.Number, build.Number)
 
 	// test job.GetLastBuild
 	build, err = pipeline.GetFirstBuild()
 	assert.Nil(t, err)
-	assert.Equal(t, expect_build.ID, build.ID)
+	assert.Equal(t, expect_build.Number, build.Number)
 
 	// test for folder
 	build, err = folder.GetFirstBuild()
@@ -145,25 +151,28 @@ func TestGetBuildFunctions(t *testing.T) {
 }
 
 func TestMove(t *testing.T) {
-	assert.Nil(t, pipeline.Move("/folder/folder1"))
-	job, err := client.GetJob("folder/pipeline")
+	_, err := pipeline.Move("/folder/folder1")
 	assert.Nil(t, err)
+	job, err := jenkins.GetJob("folder/pipeline")
+	assert.NotNil(t, err)
 	assert.Nil(t, job)
-	job, err = client.GetJob("folder/folder1/pipeline")
+	job, err = jenkins.GetJob("folder/folder1/pipeline")
 	assert.Nil(t, err)
 	assert.Contains(t, job.URL, "folder1/job/pipeline")
 
 	//revert change
-	assert.Nil(t, pipeline.Move("folder"))
+	_, err = pipeline.Move("folder")
+	assert.Nil(t, err)
 }
 
 func TestCopy(t *testing.T) {
-	assert.Nil(t, folder.Copy("pipeline", "new_pipeline"))
-	job, err := client.GetJob("folder/new_pipeline")
+	_, err := folder.Copy("pipeline", "new_pipeline")
+	assert.Nil(t, err)
+	job, err := jenkins.GetJob("folder/new_pipeline")
 	assert.Nil(t, err)
 	assert.Equal(t, job.Class, pipeline.Class)
 	assert.Contains(t, job.URL, "new_pipeline")
 
 	// clean
-	client.DeleteJob("folder/new_pipeline")
+	jenkins.DeleteJob("folder/new_pipeline")
 }

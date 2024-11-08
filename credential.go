@@ -1,27 +1,18 @@
 package jenkins
 
 import (
-	"github.com/imroc/req"
+	"fmt"
+	"io"
+	"net/http"
 )
 
-type CredentialService struct {
+type Credentials struct {
 	*Item
 }
 
-func NewCredentialService(v interface{}) *CredentialService {
-	if c, ok := v.(*Client); ok {
-		return &CredentialService{Item: NewItem(c.URL+"credentials/store/system/domain/_/", "Credentials", c)}
-	}
-
-	if c, ok := v.(*JobItem); ok {
-		return &CredentialService{Item: NewItem(c.URL+"credentials/store/folder/domain/_/", "Credentials", c.client)}
-	}
-	return nil
-}
-
-func (cs *CredentialService) Get(name string) (*Credential, error) {
-	var credsJson Credentials
-	if err := cs.BindAPIJson(ReqParams{"depth": "1"}, &credsJson); err != nil {
+func (cs *Credentials) Get(name string) (*CredentialJson, error) {
+	var credsJson CredentialsJson
+	if err := cs.ApiJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err
 	}
 	if credsJson.Credentials != nil {
@@ -31,32 +22,28 @@ func (cs *CredentialService) Get(name string) (*Credential, error) {
 			}
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("%s has no credential [%s]", cs, name)
 }
 
-func (cs *CredentialService) Create(xml string) error {
-	_, err := cs.Request("POST", "createCredentials", req.BodyXML(xml))
-	return err
+func (cs *Credentials) Create(xml io.Reader) (*http.Response, error) {
+	return cs.Request("POST", "createCredentials", xml)
 }
 
-func (cs *CredentialService) Delete(name string) error {
-	_, err := cs.Request("POST", "credential/"+name+"/doDelete")
-	return err
+func (cs *Credentials) Delete(name string) (*http.Response, error) {
+	return cs.Request("POST", "credential/"+name+"/doDelete", nil)
 }
 
-func (cs *CredentialService) GetConfigure(name string) (string, error) {
-	resp, err := cs.Request("GET", "credential/"+name+"/config.xml")
-	return resp.String(), err
+func (cs *Credentials) GetConfigure(name string) (string, error) {
+	return readResponseToString(cs, "GET", "credential/"+name+"/config.xml", nil)
 }
 
-func (cs *CredentialService) SetConfigure(name, xml string) error {
-	_, err := cs.Request("POST", "credential/"+name+"/config.xml", req.BodyXML(xml))
-	return err
+func (cs *Credentials) SetConfigure(name string, xml io.Reader) (*http.Response, error) {
+	return cs.Request("POST", "credential/"+name+"/config.xml", xml)
 }
 
-func (cs *CredentialService) List() ([]*Credential, error) {
-	var credsJson Credentials
-	if err := cs.BindAPIJson(ReqParams{"depth": "1"}, &credsJson); err != nil {
+func (cs *Credentials) List() ([]*CredentialJson, error) {
+	var credsJson CredentialsJson
+	if err := cs.ApiJson(&credsJson, &ApiJsonOpts{Depth: 1}); err != nil {
 		return nil, err
 	}
 	return credsJson.Credentials, nil
