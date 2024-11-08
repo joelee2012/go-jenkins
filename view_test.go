@@ -16,7 +16,7 @@ func TestViewServiceGet(t *testing.T) {
 
 func TestViewServiceCreate(t *testing.T) {
 	v, err := folder.Views().Get("testview")
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Empty(t, v)
 
 	// create view

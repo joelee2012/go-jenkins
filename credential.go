@@ -22,7 +22,7 @@ func (cs *Credentials) Get(name string) (*CredentialJson, error) {
 			}
 		}
 	}
-	return nil, fmt.Errorf("no such credential [%s]", name)
+	return nil, fmt.Errorf("%s has no credential [%s]", cs, name)
 }
 
 func (cs *Credentials) Create(xml io.Reader) (*http.Response, error) {

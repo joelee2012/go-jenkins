@@ -65,7 +65,8 @@ func (q *OneQueueItem) getWaitingBuild() (*Build, error) {
 			return build, nil
 		}
 	}
-	return nil, fmt.Errorf("%s have no build", q.URL)
+	// build is not avaliable and no error
+	return nil, nil
 }
 
 type Queue struct {

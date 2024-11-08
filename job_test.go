@@ -75,7 +75,7 @@ func TestList(t *testing.T) {
 
 func TestGetParent(t *testing.T) {
 	fParent, err := folder.GetParent()
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Nil(t, fParent)
 
 	pParent, err := pipeline.GetParent()

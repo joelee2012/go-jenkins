@@ -69,7 +69,7 @@ func TestBuildItemDelete(t *testing.T) {
 	_, err := build.Delete()
 	assert.Nil(t, err)
 	build, err = pipeline.GetBuild(build.Number)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
 	assert.Nil(t, build)
 }
 

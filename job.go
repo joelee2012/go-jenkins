@@ -258,7 +258,8 @@ func (j *Job) GetBuildByName(name string) (*Build, error) {
 		return nil, err
 	}
 	if string(jobJson[name]) == "null" {
-		return nil, fmt.Errorf("get build failed due to [%s is null]", name)
+		// build is null but no http error
+		return nil, nil
 	}
 	build := &BuildJson{}
 	if err := json.Unmarshal(jobJson[name], build); err != nil {
@@ -301,7 +302,7 @@ func (j *Job) GetParameters() ([]*ParameterDefinition, error) {
 			return p.ParameterDefinitions, nil
 		}
 	}
-	return nil, fmt.Errorf("no parameters found")
+	return nil, fmt.Errorf("%s has no parameters", j)
 }
 
 func (j *Job) SCMPolling() (*http.Response, error) {
