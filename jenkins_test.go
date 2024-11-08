@@ -232,7 +232,7 @@ func TestBuildJob(t *testing.T) {
 		return nil
 	})
 	assert.Nil(t, err)
-	assert.Contains(t, output, os.Getenv("JENKINS_VERSION"))
+	assert.Contains(t, strings.Join(output, ""), os.Getenv("JENKINS_VERSION"))
 
 	// test job.GetBuild
 	build1, err := pipeline.GetBuild(build.Number)

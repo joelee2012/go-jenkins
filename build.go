@@ -1,11 +1,12 @@
 package jenkins
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
+	"time"
 )
 
 type Build struct {
@@ -65,13 +66,11 @@ func (b *Build) LoopLog(f func(line string) error) error {
 
 func scanResponse(resp *http.Response, f func(line string) error) error {
 	defer resp.Body.Close()
-	scanner := bufio.NewScanner(resp.Body)
-	for scanner.Scan() {
-		if err := f(scanner.Text()); err != nil {
-			return err
-		}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
 	}
-	return scanner.Err()
+	return f(string(data))
 }
 
 func (b *Build) LoopProgressiveLog(kind string, f func(line string) error) error {
@@ -87,6 +86,7 @@ func (b *Build) LoopProgressiveLog(kind string, f func(line string) error) error
 	start := "0"
 	for {
 		resp, err := b.Request("GET", fmt.Sprintf("%s?start=%s", entry, start), nil)
+		time.Sleep(3 * time.Second)
 		if err != nil {
 			return err
 		}
