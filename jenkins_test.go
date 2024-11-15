@@ -128,16 +128,16 @@ func tearsdown() {
 func TestNewJenkins(t *testing.T) {
 	assert.Equal(t, fmt.Sprint(jenkins), fmt.Sprintf("<Jenkins: %s>", jenkins.URL))
 	expect := "Jenkins-Crumb"
-	crumb, err := jenkins.GetCrumb()
+	crumb, err := jenkins.Crumb()
 	assert.Nil(t, err)
 	assert.Equal(t, crumb.RequestFields, expect)
-	crumb1, err := jenkins.GetCrumb()
+	crumb1, err := jenkins.Crumb()
 	assert.Nil(t, err)
 	assert.Equal(t, crumb, crumb1)
 }
 
 func TestGetVersion(t *testing.T) {
-	version, err := jenkins.GetVersion()
+	version, err := jenkins.Version()
 	assert.Nil(t, err)
 	assert.Equal(t, os.Getenv("JENKINS_VERSION"), version)
 }
@@ -179,16 +179,16 @@ func TestUrl2Name(t *testing.T) {
 
 func TestGetJob(t *testing.T) {
 	// check job exist
-	job, err := jenkins.GetJob(pipeline.FullName)
+	job, err := jenkins.GetJob(pipeline.FullName())
 	assert.Nil(t, err)
-	assert.Equal(t, job.Class, "WorkflowJob")
+	assert.Equal(t, job.Class(), "WorkflowJob")
 
 	// check job does not exist
 	job, err = jenkins.GetJob("folder/notexist")
 	assert.NotNil(t, err)
 	assert.Nil(t, job)
 	// wrong path
-	job, err = jenkins.GetJob(pipeline.FullName + "/notexist")
+	job, err = jenkins.GetJob(pipeline.FullName() + "/notexist")
 	assert.NotNil(t, err)
 	assert.Nil(t, job)
 }
@@ -235,7 +235,7 @@ func TestBuildJob(t *testing.T) {
 	assert.Contains(t, strings.Join(output, ""), os.Getenv("JENKINS_VERSION"))
 
 	// test job.GetBuild
-	build1, err := pipeline.GetBuild(build.Number)
+	build1, err := pipeline.GetBuild(build.Number())
 	assert.Nil(t, err)
 	assert.Equal(t, build, build1)
 
@@ -253,7 +253,7 @@ func TestBuildJob(t *testing.T) {
 func TestBuildJobWithParameters(t *testing.T) {
 	v := url.Values{}
 	v.Add("ARG1", "ARG1_VALUE")
-	qitem, err := jenkins.BuildJob(pipeline2.FullName, v)
+	qitem, err := jenkins.BuildJob(pipeline2.FullName(), v)
 	var build *Build
 	assert.Nil(t, err)
 	for {

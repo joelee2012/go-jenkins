@@ -68,7 +68,7 @@ func TestBuildItemDelete(t *testing.T) {
 	assert.NotNil(t, build)
 	_, err := build.Delete()
 	assert.Nil(t, err)
-	build, err = pipeline.GetBuild(build.Number)
+	build, err = pipeline.GetBuild(build.Number())
 	assert.NotNil(t, err)
 	assert.Nil(t, build)
 }
@@ -91,7 +91,7 @@ func TestStopBuildItem(t *testing.T) {
 	assert.Nil(t, err)
 	job, err := qitem.GetJob()
 	assert.Nil(t, err)
-	assert.Equal(t, job.FullName, pipeline.FullName)
+	assert.Equal(t, job.FullName(), pipeline.FullName())
 	var build *Build
 	for {
 		time.Sleep(1 * time.Second)

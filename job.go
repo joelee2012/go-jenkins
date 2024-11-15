@@ -13,17 +13,12 @@ import (
 
 type Job struct {
 	*Item
-	credentials     *Credentials
-	views           *Views
-	Name            string
-	FullName        string
-	FullDisplayName string
+	credentials *Credentials
+	views       *Views
 }
 
 func NewJob(url, class string, jenkins *Jenkins) *Job {
-	j := &Job{Item: NewItem(url, class, jenkins)}
-	j.setName()
-	return j
+	return &Job{Item: NewItem(url, class, jenkins)}
 }
 
 func (j *Job) Views() *Views {
@@ -50,7 +45,6 @@ func (j *Job) Rename(name string) (newUrl *url.URL, err error) {
 
 	defer func() {
 		j.URL = appendSlash(newUrl.String())
-		j.setName()
 	}()
 
 	return resp.Location()
@@ -66,7 +60,6 @@ func (j *Job) Move(path string) (newUrl *url.URL, err error) {
 
 	defer func() {
 		j.URL = appendSlash(newUrl.String())
-		j.setName()
 	}()
 
 	return resp.Location()
@@ -105,7 +98,7 @@ func (j *Job) Enable() (*http.Response, error) {
 	return j.Request("POST", "enable", nil)
 }
 
-func (j *Job) IsBuildable() (bool, error) {
+func (j *Job) Buildable() (bool, error) {
 	var job struct {
 		Class     string `json:"_class"`
 		Buildable bool   `json:"buildable"`
@@ -114,11 +107,19 @@ func (j *Job) IsBuildable() (bool, error) {
 	return job.Buildable, err
 }
 
-func (j *Job) setName() {
+func (j *Job) FullName() string {
 	urlPath, _ := j.jenkins.URL2Name(j.URL)
-	j.FullName, _ = url.PathUnescape(urlPath)
-	_, j.Name = path.Split(j.FullName)
-	j.FullDisplayName, _ = url.PathUnescape(strings.ReplaceAll(j.FullName, "/", " » "))
+	fullName, _ := url.PathUnescape(urlPath)
+	return fullName
+}
+
+func (j *Job) FullDisplayName() string {
+	name, _ := url.PathUnescape(strings.ReplaceAll(j.FullName(), "/", " » "))
+	return name
+}
+func (j *Job) Name() string {
+	_, name := path.Split(j.FullName())
+	return name
 }
 
 func (j *Job) GetDescription() (string, error) {
@@ -136,6 +137,13 @@ func (j *Job) SetDescription(description string) (*http.Response, error) {
 }
 
 func (j *Job) Build(param url.Values) (*OneQueueItem, error) {
+	buildable, err := j.Buildable()
+	if err != nil {
+		return nil, err
+	}
+	if !buildable {
+		return nil, fmt.Errorf("%s is not buildable", j)
+	}
 	entry := func() string {
 		reserved := []string{"token", "delay"}
 		for k := range param {
@@ -158,8 +166,8 @@ func (j *Job) Build(param url.Values) (*OneQueueItem, error) {
 }
 
 func (j *Job) GetBuild(number int) (*Build, error) {
-	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s have no builds", j)
+	if j.listAble() {
+		return nil, fmt.Errorf("%s has no builds", j)
 	}
 	jobJson := &JobJson{}
 	if err := j.ApiJson(&jobJson, &ApiJsonOpts{Tree: "builds[number,url]"}); err != nil {
@@ -171,12 +179,12 @@ func (j *Job) GetBuild(number int) (*Build, error) {
 			return NewBuild(build.URL, build.Class, j.jenkins), nil
 		}
 	}
-	return nil, fmt.Errorf("%s have no builds #%d", j, number)
+	return nil, fmt.Errorf("%s has no build #%d", j, number)
 }
 
 func (j *Job) Get(name string) (*Job, error) {
-	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s have no jobs", j)
+	if !j.listAble() {
+		return nil, fmt.Errorf("%s has no jobs", j)
 	}
 	var folderJson JobJson
 	if err := j.ApiJson(&folderJson, &ApiJsonOpts{Tree: "jobs[url,name]"}); err != nil {
@@ -196,9 +204,13 @@ func (j *Job) Create(name string, xml io.Reader) (*http.Response, error) {
 	return j.Request("POST", "createItem?"+v.Encode(), xml)
 }
 
+func (j *Job) listAble() bool {
+	return slices.Contains([]string{"Folder", "WorkflowMultiBranchProject", "OrganizationFolder"}, j.Class())
+}
+
 func (j *Job) List(depth int) ([]*Job, error) {
-	if j.Class != "Folder" && j.Class != "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s have no jobs", j)
+	if !j.listAble() {
+		return nil, fmt.Errorf("%s has no jobs", j)
 	}
 	query := "jobs[url]"
 	qf := "jobs[url,%s]"
@@ -250,8 +262,8 @@ func (j *Job) GetLastUnsucessfulBuild() (*Build, error) {
 }
 
 func (j *Job) GetBuildByName(name string) (*Build, error) {
-	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s have no builds", j)
+	if j.listAble() {
+		return nil, fmt.Errorf("%s has no builds", j)
 	}
 	var jobJson map[string]json.RawMessage
 	if err := j.ApiJson(&jobJson, &ApiJsonOpts{Tree: name + "[url]"}); err != nil {
@@ -273,8 +285,8 @@ func (j *Job) Delete() (*http.Response, error) {
 }
 
 func (j *Job) ListBuilds() ([]*Build, error) {
-	if j.Class == "Folder" || j.Class == "WorkflowMultiBranchProject" {
-		return nil, fmt.Errorf("%s have no builds", j)
+	if j.listAble() {
+		return nil, fmt.Errorf("%s has no builds", j)
 	}
 	var jobJson JobJson
 	var builds []*Build
@@ -292,7 +304,7 @@ func (j *Job) SetNextBuildNumber(number int) (*http.Response, error) {
 	return j.Request("POST", fmt.Sprintf("nextbuildnumber/submit?nextBuildNumber=%d", number), nil)
 }
 
-func (j *Job) GetParameters() ([]*ParameterDefinition, error) {
+func (j *Job) Parameters() ([]*ParameterDefinition, error) {
 	jobJson := &JobJson{}
 	if err := j.ApiJson(jobJson, nil); err != nil {
 		return nil, err
@@ -310,7 +322,7 @@ func (j *Job) SCMPolling() (*http.Response, error) {
 }
 
 func (j *Job) GetMultibranchPipelineScanLog() (string, error) {
-	if j.Class != "WorkflowMultiBranchProject" {
+	if j.Class() != "WorkflowMultiBranchProject" {
 		return "", fmt.Errorf("%s is not a WorkflowMultiBranchProject", j)
 	}
 	return readResponseToString(j, "POST", "indexing/consoleText", nil)

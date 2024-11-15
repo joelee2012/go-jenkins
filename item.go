@@ -14,14 +14,22 @@ import (
 )
 
 type Item struct {
-	URL     string
-	Class   string
-	jenkins *Jenkins
+	URL      string
+	rawClass string
+	jenkins  *Jenkins
 }
 
+// type ItemAble interface {
+// 	Job | Build
+// }
+
+// func newObj[T Job | Build](url, class string, jenkins *Jenkins) *T {
+// 	i := &Item{URL: url, rawClass: class, jenkins: jenkins}
+// 	return &T{Item: i}
+// }
+
 func NewItem(url, class string, jenkins *Jenkins) *Item {
-	url = appendSlash(url)
-	return &Item{URL: url, Class: parseClass(class), jenkins: jenkins}
+	return &Item{URL: url, rawClass: class, jenkins: jenkins}
 }
 
 type ApiJsonOpts struct {
@@ -36,6 +44,12 @@ func (o *ApiJsonOpts) Encode() string {
 	}
 	v.Add("depth", strconv.Itoa(o.Depth))
 	return v.Encode()
+}
+
+var delimeter = regexp.MustCompile(`\w+$`)
+
+func (i *Item) Class() string {
+	return delimeter.FindString(i.rawClass)
 }
 
 // Bind jenkins JSON data to any type,
@@ -73,10 +87,8 @@ func (i *Item) Request(method, entry string, body io.Reader) (*http.Response, er
 }
 
 func (i *Item) String() string {
-	return fmt.Sprintf("<%s: %s>", i.Class, i.URL)
+	return fmt.Sprintf("<%s: %s>", i.Class(), i.URL)
 }
-
-var delimeter = regexp.MustCompile(`\w+$`)
 
 func parseClass(text string) string {
 	return delimeter.FindString(text)

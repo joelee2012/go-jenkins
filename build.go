@@ -11,11 +11,10 @@ import (
 
 type Build struct {
 	*Item
-	Number int
 }
 
 func NewBuild(url, class string, jenkins *Jenkins) *Build {
-	return &Build{Item: NewItem(url, class, jenkins), Number: parseId(url)}
+	return &Build{Item: NewItem(url, class, jenkins)}
 }
 
 func (b *Build) IsBuilding() (bool, error) {
@@ -25,6 +24,10 @@ func (b *Build) IsBuilding() (bool, error) {
 	}
 	err := b.ApiJson(&build, &ApiJsonOpts{Tree: "building"})
 	return build.Building, err
+}
+
+func (b *Build) Number() int {
+	return parseId(b.URL)
 }
 
 func (b *Build) GetResult() (string, error) {
