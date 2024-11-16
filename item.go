@@ -19,15 +19,6 @@ type Item struct {
 	jenkins  *Jenkins
 }
 
-// type ItemAble interface {
-// 	Job | Build
-// }
-
-// func newObj[T Job | Build](url, class string, jenkins *Jenkins) *T {
-// 	i := &Item{URL: url, rawClass: class, jenkins: jenkins}
-// 	return &T{Item: i}
-// }
-
 func NewItem(url, class string, jenkins *Jenkins) *Item {
 	return &Item{URL: url, rawClass: class, jenkins: jenkins}
 }

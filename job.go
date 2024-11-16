@@ -166,7 +166,7 @@ func (j *Job) Build(param url.Values) (*OneQueueItem, error) {
 }
 
 func (j *Job) GetBuild(number int) (*Build, error) {
-	if j.listAble() {
+	if j.ListAble() {
 		return nil, fmt.Errorf("%s has no builds", j)
 	}
 	jobJson := &JobJson{}
@@ -183,7 +183,7 @@ func (j *Job) GetBuild(number int) (*Build, error) {
 }
 
 func (j *Job) Get(name string) (*Job, error) {
-	if !j.listAble() {
+	if !j.ListAble() {
 		return nil, fmt.Errorf("%s has no jobs", j)
 	}
 	var folderJson JobJson
@@ -204,12 +204,12 @@ func (j *Job) Create(name string, xml io.Reader) (*http.Response, error) {
 	return j.Request("POST", "createItem?"+v.Encode(), xml)
 }
 
-func (j *Job) listAble() bool {
+func (j *Job) ListAble() bool {
 	return slices.Contains([]string{"Folder", "WorkflowMultiBranchProject", "OrganizationFolder"}, j.Class())
 }
 
 func (j *Job) List(depth int) ([]*Job, error) {
-	if !j.listAble() {
+	if !j.ListAble() {
 		return nil, fmt.Errorf("%s has no jobs", j)
 	}
 	query := "jobs[url]"
@@ -262,7 +262,7 @@ func (j *Job) GetLastUnsucessfulBuild() (*Build, error) {
 }
 
 func (j *Job) GetBuildByName(name string) (*Build, error) {
-	if j.listAble() {
+	if j.ListAble() {
 		return nil, fmt.Errorf("%s has no builds", j)
 	}
 	var jobJson map[string]json.RawMessage
@@ -285,7 +285,7 @@ func (j *Job) Delete() (*http.Response, error) {
 }
 
 func (j *Job) ListBuilds() ([]*Build, error) {
-	if j.listAble() {
+	if j.ListAble() {
 		return nil, fmt.Errorf("%s has no builds", j)
 	}
 	var jobJson JobJson
