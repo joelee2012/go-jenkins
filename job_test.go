@@ -74,17 +74,17 @@ func TestList(t *testing.T) {
 }
 
 func TestGetParent(t *testing.T) {
-	fParent, err := folder.GetParent()
+	fParent, err := folder.Parent()
 	assert.NotNil(t, err)
 	assert.Nil(t, fParent)
 
-	pParent, err := pipeline.GetParent()
+	pParent, err := pipeline.Parent()
 	assert.Nil(t, err)
 	assert.Equal(t, folder.URL, pParent.URL)
 }
 
 func TestGetConfig(t *testing.T) {
-	conf, err := pipeline.GetConfigure()
+	conf, err := pipeline.Configure()
 	assert.Nil(t, err)
 	assert.Contains(t, conf, os.Getenv("JENKINS_VERSION"))
 }
@@ -116,13 +116,13 @@ func TestFolderCredentials(t *testing.T) {
 }
 
 func TestSetDescription(t *testing.T) {
-	description, err := pipeline.GetDescription()
+	description, err := pipeline.Description()
 	assert.Nil(t, err)
 	assert.Empty(t, description)
 	msg := "testing job for go jenkins"
 	_, err = pipeline.SetDescription(msg)
 	assert.Nil(t, err)
-	description, err = pipeline.GetDescription()
+	description, err = pipeline.Description()
 	assert.Nil(t, err)
 	assert.Equal(t, msg, description)
 }

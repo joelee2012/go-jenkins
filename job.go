@@ -73,7 +73,7 @@ func (j *Job) Copy(src, dest string) (*http.Response, error) {
 	return j.Request("POST", "createItem?"+v.Encode(), nil)
 }
 
-func (j *Job) GetParent() (*Job, error) {
+func (j *Job) Parent() (*Job, error) {
 	fullName, _ := j.jenkins.URL2Name(j.URL)
 	dir, _ := path.Split(strings.Trim(fullName, "/"))
 	if dir == "" {
@@ -82,7 +82,7 @@ func (j *Job) GetParent() (*Job, error) {
 	return j.jenkins.GetJob(dir)
 }
 
-func (j *Job) GetConfigure() (string, error) {
+func (j *Job) Configure() (string, error) {
 	return readResponseToString(j, "GET", "config.xml", nil)
 }
 
@@ -117,12 +117,13 @@ func (j *Job) FullDisplayName() string {
 	name, _ := url.PathUnescape(strings.ReplaceAll(j.FullName(), "/", " » "))
 	return name
 }
+
 func (j *Job) Name() string {
 	_, name := path.Split(j.FullName())
 	return name
 }
 
-func (j *Job) GetDescription() (string, error) {
+func (j *Job) Description() (string, error) {
 	data := make(map[string]string)
 	if err := j.ApiJson(&data, &ApiJsonOpts{Tree: "description"}); err != nil {
 		return "", err
