@@ -6,22 +6,13 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/joelee2012/go-jenkins"
 	"github.com/spf13/cobra"
 )
 
 var (
 	version = "dev"
-	commit  = "none"
-	date    = "unknown"
 )
-
-type BuildInfo struct {
-	Version   string
-	Commit    string
-	BuildDate string
-}
-
-var versionInfo = fmt.Sprintf("Client version: %#v", BuildInfo{Version: version, Commit: commit, BuildDate: date})
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
@@ -34,17 +25,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(versionInfo)
-		if opts.URL == "" {
-			return
-		}
-
-		v, err := client.Version()
-		if err != nil {
-			fmt.Println("Server Error:", err)
-			return
-		}
-		fmt.Println("Server version:", v)
+		opts.Version()
 	},
 }
 
@@ -60,4 +41,19 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// versionCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func (o *JenkinsOpts) Version() {
+	client := jenkins.New(o.URL, o.User, o.Password)
+	fmt.Println("Client version:", version)
+	if o.URL == "" {
+		return
+	}
+
+	v, err := client.Version()
+	if err != nil {
+		fmt.Println("Server Error:", err)
+		return
+	}
+	fmt.Println("Server version:", v)
 }

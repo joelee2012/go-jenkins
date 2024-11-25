@@ -24,40 +24,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if opts.URL == "" {
-			return fmt.Errorf("no jenkins url set")
-		}
-		var job *jenkins.Job
-		var err error
-		if getOpts.Path == "." {
-			if len(args) == 0 {
-				jobs, err := client.ListJobs(depth)
-				cobra.CheckErr(err)
-				for _, job := range jobs {
-					fmt.Println(job)
-				}
-			} else {
-				job, err = client.GetJob(args[0])
-			}
-
-		} else {
-			if len(args) == 0 {
-				job, err = client.GetJob(getOpts.Path)
-				cobra.CheckErr(err)
-				jobs, err := job.List(depth)
-				cobra.CheckErr(err)
-				for _, job := range jobs {
-					fmt.Println(job)
-				}
-			} else {
-				job, err = client.GetJob(fmt.Sprintf("%s/%s", getOpts.Path, args[0]))
-			}
-		}
-		if err != nil {
-			return err
-		}
-		fmt.Println(job)
-		return nil
+		return opts.GetJob(args)
 	},
 }
 
@@ -73,5 +40,44 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// jobCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	jobCmd.Flags().IntVarP(&depth, "depth", "d", 0, "list job depth")
+	jobCmd.Flags().IntVarP(&opts.Depth, "depth", "d", 0, "list job depth")
+}
+
+func (o *JenkinsOpts) GetJob(args []string) error {
+	if o.URL == "" {
+		return fmt.Errorf("no jenkins url set")
+	}
+	client := jenkins.New(o.URL, o.User, o.Password)
+	var job *jenkins.Job
+	var err error
+	if o.Path == "." {
+		if len(args) == 0 {
+			jobs, err := client.ListJobs(depth)
+			cobra.CheckErr(err)
+			for _, job := range jobs {
+				fmt.Println(job)
+			}
+		} else {
+			job, err = client.GetJob(args[0])
+		}
+
+	} else {
+		if len(args) == 0 {
+			job, err = client.GetJob(o.Path)
+			cobra.CheckErr(err)
+			jobs, err := job.List(depth)
+			cobra.CheckErr(err)
+			for _, job := range jobs {
+				fmt.Println(job)
+			}
+		} else {
+			job, err = client.GetJob(fmt.Sprintf("%s/%s", o.Path, args[0]))
+		}
+	}
+	if err != nil {
+		return err
+	}
+	fmt.Println(job)
+	return nil
+
 }

@@ -95,14 +95,14 @@ type Crumb struct {
 //			return nil
 //		})
 //	}
-func New(url, user, password string) (*Jenkins, error) {
+func New(url, user, password string) *Jenkins {
 	url = appendSlash(url)
 	c := &Jenkins{Header: make(http.Header)}
 	c.Item = NewItem(url, "Jenkins", c)
 	c.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", user, password))))
 	c.Header.Set("Accept", "application/json")
 	c.Header.Set("Content-Type", "application/xml; charset=UTF-8")
-	return c, nil
+	return c
 }
 
 func (j *Jenkins) SetClient(c *http.Client) {

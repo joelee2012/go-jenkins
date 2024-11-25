@@ -88,10 +88,7 @@ var (
 func setup() error {
 	log.Println("execute setup function")
 	var err error
-	jenkins, err = New(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
-	if err != nil {
-		return err
-	}
+	jenkins = New(os.Getenv("JENKINS_URL"), os.Getenv("JENKINS_USER"), os.Getenv("JENKINS_PASSWORD"))
 
 	jobConf = strings.ReplaceAll(jobConf, "JENKINS_VERSION", os.Getenv("JENKINS_VERSION"))
 	confs := []string{folderConf, folderConf, jobConf, paramsJobConf}

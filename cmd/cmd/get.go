@@ -22,12 +22,6 @@ to quickly create a Cobra application.`,
 	// },
 }
 
-type GetOpts struct {
-	Path string
-}
-
-var getOpts = &GetOpts{}
-
 func init() {
 	rootCmd.AddCommand(getCmd)
 
@@ -35,7 +29,7 @@ func init() {
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	getCmd.PersistentFlags().StringVarP(&getOpts.Path, "path", "P", ".", "jobpath")
+	// getCmd.PersistentFlags().StringVarP(&opts.Path, "path", "P", ".", "jobpath")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:

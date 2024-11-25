@@ -6,25 +6,17 @@ package cmd
 import (
 	"os"
 
-	"github.com/joelee2012/go-jenkins"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
-var client *jenkins.Jenkins
+
+// var client *jenkins.Jenkins
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use: "jenksctl",
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		var err error
-		client, err = jenkins.New(opts.URL, opts.User, opts.Password)
-		if err != nil {
-			return err
-		}
-		return nil
-	},
+	Use:   "jenksctl",
 	Short: "A brief description of your application",
 	Long: `A longer description that spans multiple lines and likely contains
 examples and usage of using your application. For example:
@@ -50,6 +42,8 @@ type JenkinsOpts struct {
 	URL      string
 	User     string
 	Password string
+	Path     string
+	Depth    int
 }
 
 var opts = &JenkinsOpts{}
@@ -67,6 +61,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&opts.URL, "url", "", "the jenkins url")
 	rootCmd.PersistentFlags().StringVarP(&opts.User, "user", "u", "", "jenkins user")
 	rootCmd.PersistentFlags().StringVarP(&opts.Password, "password", "p", "", "jenkins password")
+	rootCmd.PersistentFlags().StringVarP(&opts.Path, "path", "P", "", "jobpath")
 	viper.BindPFlags(rootCmd.Flags())
 
 }
