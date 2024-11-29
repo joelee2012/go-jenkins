@@ -42,8 +42,9 @@ type JenkinsOpts struct {
 	URL      string
 	User     string
 	Password string
-	Path     string
+	Folder   string
 	Depth    int
+	Output   string
 }
 
 var opts = &JenkinsOpts{}
@@ -61,7 +62,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&opts.URL, "url", "", "the jenkins url")
 	rootCmd.PersistentFlags().StringVarP(&opts.User, "user", "u", "", "jenkins user")
 	rootCmd.PersistentFlags().StringVarP(&opts.Password, "password", "p", "", "jenkins password")
-	rootCmd.PersistentFlags().StringVarP(&opts.Path, "path", "P", "", "jobpath")
+	rootCmd.PersistentFlags().StringVarP(&opts.Folder, "folder", "F", "", "folder of job")
 	viper.BindPFlags(rootCmd.Flags())
 
 }
@@ -86,14 +87,17 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		if viper.IsSet("context") {
-			ctx := viper.GetString("context")
+		if viper.IsSet("current-server") {
+			ctx := viper.GetString("current-server")
 			if v := viper.Sub("servers." + ctx); v != nil {
 				v.BindPFlags(rootCmd.Flags())
 				opts.URL = v.GetString("url")
 				opts.User = v.GetString("user")
 				opts.Password = v.GetString("password")
 			}
+		}
+		if viper.IsSet("current-folder") {
+			opts.Folder = viper.GetString("current-folder")
 		}
 	}
 }

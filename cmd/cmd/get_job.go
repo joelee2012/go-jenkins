@@ -10,10 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var depth int
-
-// jobCmd represents the job command
-var jobCmd = &cobra.Command{
+// getJobCmd represents the job command
+var getJobCmd = &cobra.Command{
 	Use:   "job",
 	Short: "A brief description of your command",
 	Args:  cobra.MaximumNArgs(1),
@@ -29,7 +27,7 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	getCmd.AddCommand(jobCmd)
+	getCmd.AddCommand(getJobCmd)
 
 	// Here you will define your flags and configuration settings.
 
@@ -40,7 +38,8 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// jobCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	jobCmd.Flags().IntVarP(&opts.Depth, "depth", "d", 0, "list job depth")
+	getJobCmd.Flags().IntVarP(&opts.Depth, "depth", "d", 0, "list job depth")
+	getJobCmd.MarkFlagsMutuallyExclusive("depth", "output")
 }
 
 func (o *JenkinsOpts) GetJob(args []string) error {
@@ -48,36 +47,40 @@ func (o *JenkinsOpts) GetJob(args []string) error {
 		return fmt.Errorf("no jenkins url set")
 	}
 	client := jenkins.New(o.URL, o.User, o.Password)
-	var job *jenkins.Job
-	var err error
-	if o.Path == "." {
-		if len(args) == 0 {
-			jobs, err := client.ListJobs(depth)
-			cobra.CheckErr(err)
-			for _, job := range jobs {
-				fmt.Println(job)
+	var names []string
+	if len(args) != 0 {
+		for _, name := range args {
+			if o.Folder == "" {
+				names = append(names, name)
+			} else {
+				names = append(names, fmt.Sprintf("%s/%s", o.Folder, name))
 			}
-		} else {
-			job, err = client.GetJob(args[0])
 		}
-
+		for _, name := range names {
+			printJobs(client, name, o.Output, o.Depth)
+		}
 	} else {
-		if len(args) == 0 {
-			job, err = client.GetJob(o.Path)
-			cobra.CheckErr(err)
-			jobs, err := job.List(depth)
-			cobra.CheckErr(err)
-			for _, job := range jobs {
-				fmt.Println(job)
-			}
-		} else {
-			job, err = client.GetJob(fmt.Sprintf("%s/%s", o.Path, args[0]))
-		}
-	}
-	if err != nil {
-		return err
-	}
-	fmt.Println(job)
-	return nil
+		printJobs(client, o.Folder, o.Output, o.Depth)
 
+	}
+	return nil
+}
+
+func printJobs(client *jenkins.Jenkins, folder, output string, depth int) {
+	job, err := client.GetJob(folder)
+	cobra.CheckErr(err)
+	showConfigOrName(job, output)
+	jobs, err := job.List(depth)
+	cobra.CheckErr(err)
+	for _, job := range jobs {
+		showConfigOrName(job, output)
+	}
+}
+
+func showConfigOrName(job *jenkins.Job, output string) {
+	if output == "xml" {
+		fmt.Println(job.Configure())
+	} else {
+		fmt.Println(job)
+	}
 }
